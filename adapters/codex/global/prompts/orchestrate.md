@@ -1,0 +1,34 @@
+# orchestrate (codex)
+
+오케스트레이션 파이프라인 진입점. **절차의 단일 소스는 프로젝트 루트의 `AGENTS.md` 와
+`.codex/AGENTS.md` 다** — 여기에 절차를 복제하지 않는다.
+
+## 시작 전 확인
+
+1. 프로젝트 루트에 `.claude/orchestrate.md`(로스터)가 있고 `[TODO]` 가 0건인가?
+   - 아니면 먼저 `/orchestrate-onboard` 를 실행한다. **로스터 없이 위임 금지.**
+2. `~/.opencode/bin/opencode` 가 실행 가능한가?
+
+## 역할 경계
+
+codex 는 **오케스트레이터**다. 소스 코드를 직접 고치지 않는다.
+
+- 기획·작업 분해·지시서 작성 → codex
+- 구현 → `bash scripts/run-delegation.sh <에이전트> <프롬프트파일> <로그경로> [tier]`
+- 리뷰 → `bash scripts/codex-review.sh <BASE_REF>`
+- 커밋 → 리뷰 통과 후 codex 가 수행
+
+직접 수정해도 되는 경로: `DOCs/`, `.codex/`, 지시서 파일.
+
+## 위임 규칙
+
+- tier 는 `default` 가 기본이다. large 등급·위험 도메인 task 는 처음부터 `heavy`,
+  🔴 반려 재위임도 `heavy` 로 승격한다.
+- 실사용 모델은 스크립트 출력의 `MODEL_USED=` 로 확인한다.
+- 위임 프롬프트에 **프로젝트 밖 절대경로를 "읽어라"고 쓰지 않는다** — opencode 가
+  external_directory 로 차단한다. 외부 파일은 오케스트레이터가 읽어서 인라인한다.
+
+## 리뷰 게이트
+
+리뷰에서 🔴 Critical 이 하나라도 나오면 **반려**다. 같은 에이전트에 `heavy` tier 로
+재위임한다(최대 2회). 게이트를 통과하기 전에는 커밋하지 않는다.

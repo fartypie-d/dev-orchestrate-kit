@@ -1,0 +1,72 @@
+# 공용 스텔스 브라우저 + 우회 fetch 서비스 — 단일 컨테이너.
+#
+# 한 컨테이너가 두 포트를 서빙한다:
+#   127.0.0.1:9222  raw CDP (CloakBrowser 스텔스 Chromium, 헤디드 — 컨테이너 자체 Xvfb)
+#   127.0.0.1:9223  insane-search 우회 엔진 HTTP API
+#
+# 이 컨테이너는 오케스트레이션 워크플로우와 독립적으로 쓸 수 있다 — 키트 install.sh 없이
+# 여기서 바로 `docker compose up -d` 만 하면 된다. 헤드리스 개발 서버에서 브라우저를
+# 쓰기 어려운 환경을 위한 것이다 (X 디스플레이·GPU·per-user Chrome 설치 불필요).
+#
+# 빌드 전 vendor/engine 을 채운다:  bash insane-api/vendor/sync-vendor.sh
+#
+# SECURITY — 포트 바인딩을 바꾸지 말 것.
+#   CDP 는 인증이 없는 프로토콜이다. 9222 에 닿을 수 있는 사람은 로컬 파일을 읽고,
+#   임의 JS 를 실행하고, 이 호스트를 경유해 요청을 보낼 수 있다. 그래서 두 포트 모두
+#   127.0.0.1 에 고정한다. 0.0.0.0 으로 공개하거나 tailnet·터널 뒤에 두면 공용 개발
+#   서버가 원격 코드 실행 대상이 된다.
+#
+# Usage:  cd containers/browser && docker compose up -d
+# Verify: curl -s http://127.0.0.1:9222/json/version
+#         curl -s http://127.0.0.1:9223/health
+
+services:
+  chrome-cdp:
+    build: ./insane-api
+    image: local/chrome-cdp:0.11.0
+    container_name: chrome-cdp
+    ports:
+      - "127.0.0.1:9222:9222"          # SECURITY: localhost 전용. 위 참조.
+      - "127.0.0.1:9223:9223"          # SECURITY: localhost 전용. 위 참조.
+    networks:
+      default:
+        aliases:
+          # 통합 전 `http://insane-api:9223` 로 부르던 컨테이너들을 위한 별칭.
+          - insane-api
+    environment:
+      # 브라우저는 같은 컨테이너 안에 있다.
+      INSANE_CDP_URL: "http://127.0.0.1:9222"
+      INSANE_MAX_CONCURRENCY: "4"
+      # fingerprint seed 마다 Chrome 프로세스 + 프로필 디렉터리가 생기고, 기본값
+      # (0=비활성)에서는 컨테이너를 재시작할 때까지 절대 회수되지 않는다. 실측: 2주
+      # 가동에 Chrome 프로세스 86개·8.4GB 누적.
+      #
+      # 트레이드오프 — 유휴 회수는 그 seed 의 프로필(쿠키·localStorage)을 삭제한다.
+      # 즉 로그인 세션은 이 시간만큼만 유지된다. 로그인 상태를 더 오래 들고 가야 하면
+      # 쿠키를 밖에 저장했다가 add_cookies() 로 복원할 것 (README 참조).
+      # 값은 초 단위 숫자만 받는다 ("30m" 같은 표기는 파싱 실패로 기동 불가). 0 = 비활성.
+      CLOAKSERVE_IDLE_TIMEOUT: "1800"   # 30분
+    volumes:
+      # Chromium 바이너리(~200MB)와 Widevine CDM 은 최초 실행 시 내려받아 여기 캐시된다.
+      # 이 볼륨이 없으면 재시작마다 다시 받는다.
+      - cloak-cache:/root/.cloakbrowser
+    # 기본 64MB /dev/shm 로는 웬만한 페이지에서 Chrome 이 죽는다.
+    shm_size: "2gb"
+    # cloakserve 가 fingerprint 마다 띄우는 Chrome 의 좀비 프로세스를 회수한다.
+    init: true
+    restart: unless-stopped
+    healthcheck:
+      # 두 역할을 모두 확인한다 — 한쪽만 살아있는 상태를 healthy 로 보고하지 않도록.
+      test:
+        - CMD
+        - python3
+        - -c
+        - "import urllib.request as u;u.urlopen('http://127.0.0.1:9222/json/version',timeout=5);u.urlopen('http://127.0.0.1:9223/health',timeout=5)"
+      interval: 30s
+      timeout: 10s
+      # 최초 기동은 Chromium 다운로드가 있어 오래 걸린다.
+      start_period: 300s
+      retries: 3
+
+volumes:
+  cloak-cache:

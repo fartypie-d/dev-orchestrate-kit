@@ -1,0 +1,18 @@
+{
+  "_comment": "ECC 에이전트 역할 분류. apply-plan-profile.sh 가 이 표로 요금제별 모델을 배정한다. 목록에 없는 에이전트는 worker 로 떨어진다 — ECC 가 에이전트를 추가해도 안전하다.",
+  "design": [
+    "planner", "architect", "code-architect", "spec-miner",
+    "a11y-architect", "network-architect", "homelab-architect"
+  ],
+  "quality": [
+    "agent-evaluator", "code-reviewer", "comment-analyzer", "conversation-analyzer",
+    "cpp-reviewer", "csharp-reviewer", "database-reviewer", "django-reviewer",
+    "fastapi-reviewer", "flutter-reviewer", "fsharp-reviewer", "gan-evaluator",
+    "go-reviewer", "healthcare-reviewer", "java-reviewer", "kotlin-reviewer",
+    "mle-reviewer", "network-config-reviewer", "php-reviewer", "pr-test-analyzer",
+    "python-reviewer", "react-reviewer", "rust-reviewer", "security-reviewer",
+    "silent-failure-hunter", "swift-reviewer", "type-design-analyzer",
+    "typescript-reviewer", "vue-reviewer", "task-orchestrator"
+  ],
+  "_quality_note": "task-orchestrator 는 리뷰어가 아니지만 검증·커밋 경로를 담당하므로 품질 등급으로 둔다 — 여기를 haiku 로 내리면 위임 산출물이 검증 없이 커밋된다."
+}

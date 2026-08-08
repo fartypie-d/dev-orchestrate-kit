@@ -1,0 +1,1 @@
+../core/scripts/docs-index.py

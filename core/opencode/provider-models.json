@@ -1,0 +1,39 @@
+{
+  "_comment": "프로바이더 → 권장 모델 매핑. gen-policy.sh 가 이 표에서 tier 체인을 만든다. 모델 목록은 시드일 뿐이며 실제 가용성은 `opencode models` 로 확인한다 (model-doctor.sh). 구독 인증은 열리는 모델이 API 가격표와 다르므로 하드코딩을 신뢰하지 말 것.",
+  "providers": {
+    "antigravity": {
+      "prefix": "antigravity",
+      "credential": "ANTIGRAVITY_API_KEY",
+      "auth": "key",
+      "needs_provider_block": true,
+      "default": ["antigravity/gemini-3.6-flash-high"],
+      "heavy": ["antigravity/gemini-3.1-pro-high"]
+    },
+    "qwen": {
+      "prefix": "qwencloud",
+      "credential": "QWEN_API_KEY",
+      "auth": "key",
+      "needs_provider_block": true,
+      "default": ["qwencloud/qwen3.7-plus", "qwencloud/deepseek-v4-pro", "qwencloud/deepseek-v4-flash-0731"],
+      "heavy": ["qwencloud/qwen3.7-max"]
+    },
+    "openai": {
+      "prefix": "openai",
+      "credential": "opencode auth login -p openai",
+      "auth": "oauth",
+      "needs_provider_block": false,
+      "default": ["openai/gpt-5.6-luna"],
+      "heavy": ["openai/gpt-5.6-terra"]
+    },
+    "xai": {
+      "prefix": "xai",
+      "credential": "opencode auth login -p xai",
+      "auth": "oauth",
+      "needs_provider_block": false,
+      "default": [],
+      "heavy": ["xai/grok-4.5"]
+    }
+  },
+  "_tier_order_note": "체인 내 우선순위. GPT(openai) 우선 정책이므로 openai 가 맨 앞이다. 그 뒤는 서로 다른 할당량 풀 순서 — openai 가 한도에 걸렸을 때 실제로 넘어갈 곳이 되도록 배치한다.",
+  "tier_order": ["openai", "xai", "antigravity", "qwen"]
+}

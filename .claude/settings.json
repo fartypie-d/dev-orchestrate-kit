@@ -1,0 +1,59 @@
+{
+  "env": {
+    "MAX_THINKING_TOKENS": "10000",
+    "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "75"
+  },
+  "permissions": {
+    "allow": [
+      "Bash(git status)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git show:*)",
+      "Bash(git branch)",
+      "Bash(ls:*)",
+      "Bash(opencode run:*)",
+      "Bash(bash scripts/run-delegation.sh:*)",
+      "Bash(bash scripts/hook-selfcheck.sh)",
+      "Bash(python3 scripts/session-cost.py:*)",
+      "Bash(python3 scripts/docs-index.py)",
+      "Bash(opencode agent list)",
+      "Bash(tail:*)",
+      "Bash(head:*)",
+      "Bash(wc:*)",
+      "Bash(date)",
+      "Bash(ps:*)",
+      "Bash(grep:*)",
+      "Bash(mkdir -p .orchestrate:*)",
+      "Bash(cat > .orchestrate/:*)",
+      "Bash(docker ps:*)",
+      "Bash(docker logs:*)",
+      "Bash(docker compose ps:*)",
+      "Bash(docker compose logs:*)",
+      "Read",
+      "Grep",
+      "Glob"
+    ],
+    "deny": []
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [{ "type": "command", "command": "bash .claude/hooks/bash-guard.sh" }]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [{ "type": "command", "command": "bash .claude/hooks/post-edit-check.sh" }]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "startup|clear",
+        "hooks": [{ "type": "command", "command": "bash scripts/hook-selfcheck.sh" }]
+      }
+    ]
+  }
+}

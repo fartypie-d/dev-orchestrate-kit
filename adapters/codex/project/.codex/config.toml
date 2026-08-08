@@ -1,0 +1,19 @@
+# 이 저장소 권장 codex 설정. ~/.codex/config.toml 과 자동 병합되지 않는다 — 필요한 값을 직접 옮길 것.
+
+# 오케스트레이터는 워크스페이스 밖을 쓰지 않는다. 위임 에이전트가 소스를 고치므로
+# codex 자신은 문서·지시서만 쓰면 된다.
+sandbox_mode = "workspace-write"
+
+# 되돌리기 어려운 명령은 사람이 확인한다 — 내부 파괴 명령(rm -rf ., git reset --hard)은
+# 승인 없이 실행될 수 있으므로, codex 에는 bash-guard 등가물이 없다.
+approval_policy = "on-request"
+
+# 온보딩·설계 단계에서는 최상위 모델 + 높은 추론을 쓴다.
+model_reasoning_effort = "high"
+
+# 선택: 대화 내 /agent 리뷰 (실험 기능). 꺼져 있어도 scripts/codex-review.sh 가 동작한다.
+# [features]
+# multi_agent = true
+#
+# [agents.reviewer]
+# layer = ".codex/agents/reviewer.toml"

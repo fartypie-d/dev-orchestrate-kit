@@ -1,0 +1,22 @@
+{
+  "_comment": "Claude 요금제별 모델 프로파일. apply-plan-profile.sh 가 적용한다. main_model 이 null 이면 ~/.claude/settings.json 의 .model 을 건드리지 않는다(사용자 선택 유지). env 값이 null 이면 해당 키를 제거한다.",
+  "_env_note": "토큰 env 2개는 요금제와 무관한 공통값이다 — x20 에서도 동일하게 쓴다. 실제 프로젝트들과 프로젝트 템플릿이 이미 10000/75 로 운영 중이다. 요금제가 가르는 것은 메인 모델과 worker 클래스뿐이다.",
+  "_forbidden": "CLAUDE_CODE_SUBAGENT_MODEL 은 어떤 프로파일에도 넣지 않는다 — frontmatter 와 명시적 model 파라미터를 전부 덮어써서 리뷰어까지 강등시킨다.",
+  "profiles": {
+    "pro": {
+      "main_model": "sonnet",
+      "agents": { "design": "opus", "quality": "sonnet", "worker": "haiku" },
+      "env": { "MAX_THINKING_TOKENS": "10000", "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "75" }
+    },
+    "max5": {
+      "main_model": "opus",
+      "agents": { "design": "opus", "quality": "sonnet", "worker": "haiku" },
+      "env": { "MAX_THINKING_TOKENS": "10000", "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "75" }
+    },
+    "max20": {
+      "main_model": null,
+      "agents": { "design": "opus", "quality": "sonnet", "worker": "sonnet" },
+      "env": { "MAX_THINKING_TOKENS": "10000", "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "75" }
+    }
+  }
+}

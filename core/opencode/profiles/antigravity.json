@@ -1,0 +1,14 @@
+{
+  "_comment": "시드 프로파일 — antigravity 프록시(:8045)를 쓰는 머신용. gen-policy.sh 결과 대신 이 파일을 그대로 쓸 수도 있다.",
+  "tiers": {
+    "default": [
+      "qwencloud/qwen3.7-plus",
+      "qwencloud/deepseek-v4-pro",
+      "qwencloud/deepseek-v4-flash-0731"
+    ],
+    "heavy": [
+      "xai/grok-4.5",
+      "qwencloud/qwen3.7-max"
+    ]
+  }
+}

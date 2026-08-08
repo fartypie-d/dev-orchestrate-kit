@@ -1,0 +1,37 @@
+# 선택적 오버레이 — 헤디드 브라우저 화면을 브라우저로 들여다본다 (noVNC).
+#
+# 이 컨테이너의 Chrome 은 헤드리스가 아니라 컨테이너 자체 Xvfb(:99) 위에서 헤디드로
+# 돈다. 평소엔 화면이 필요 없지만(스크래핑은 CDP 로 제어), 디버깅·수동 로그인·CAPTCHA
+# 확인이 필요할 때 이 오버레이로 실제 화면을 볼 수 있다.
+#
+# 실험적 — 이 호스트에서 compose 문법만 검증했다. 실사용 전 직접 확인할 것.
+#
+# 사용법:
+#   docker compose -f docker-compose.yml -f docker-compose.novnc.yml up -d
+#   브라우저에서 http://127.0.0.1:6080/vnc.html  (원격 서버면 SSH 포트포워딩)
+#
+# SECURITY: noVNC 포트도 127.0.0.1 전용이다. Xvfb 화면에는 로그인 세션이 그대로
+# 보이므로 LAN 에 열지 말 것.
+
+services:
+  # 메인 컨테이너에 X 소켓을 공유 볼륨으로 노출시킨다.
+  chrome-cdp:
+    volumes:
+      - x11-socket:/tmp/.X11-unix
+
+  novnc:
+    build: ./novnc
+    container_name: chrome-cdp-novnc
+    depends_on:
+      - chrome-cdp
+    environment:
+      DISPLAY_NUM: "99"          # 메인 컨테이너 Xvfb 디스플레이 번호
+    ports:
+      - "127.0.0.1:6080:6080"    # SECURITY: localhost 전용.
+    volumes:
+      # 메인 컨테이너의 Xvfb 유닉스 소켓에 x11vnc 로 붙는다.
+      - x11-socket:/tmp/.X11-unix:ro
+    restart: unless-stopped
+
+volumes:
+  x11-socket:

@@ -1,0 +1,167 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 980" role="img"
+           aria-label="사용자, Claude 오케스트레이터, opencode 구현 실행기 3개 레인으로 그린 워크플로우. 사용자의 자연어 지시가 인터뷰, 크기 분류, GATE 1 승인을 거쳐 run-delegation.sh로 opencode 에이전트에 위임되고, 도메인 리뷰(반려 시 heavy 재위임), GATE 2 통합 승인, 보고·phase-close로 끝난다."><style>
+svg { font-family: -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", system-ui, sans-serif; color: #93A0AC; }
+.lane-h { font-size: 13px; font-weight: 700; fill: #E5EAEF; letter-spacing: 0.02em; }
+.lane-g { stroke: currentColor; stroke-dasharray: 3 6; opacity: 0.28; }
+.bx { fill: #1A212A; stroke: #2D3743; stroke-width: 1.2; }
+.bx-bar { fill: #56C2D4; }
+.bx-t { font-size: 14px; font-weight: 650; fill: #E5EAEF; }
+.bx-s { font-size: 11px; fill: #93A0AC; }
+.gate-bx { fill: #2B2313; stroke: #E0A94E; stroke-width: 1.3; }
+.gate-t { font-size: 14px; font-weight: 700; fill: #E0A94E; }
+.pill { fill: #222B35; stroke: #2D3743; stroke-width: 1; }
+.oc-bx { fill: #1A212A; stroke: #56C2D4; stroke-width: 1.5; }
+.opt-bx { fill: none; stroke: #2D3743; stroke-width: 1.2; stroke-dasharray: 5 4; }
+.fl { stroke: currentColor; stroke-width: 1.4; fill: none; }
+.fl-a { stroke: #56C2D4; stroke-width: 1.4; fill: none; stroke-dasharray: 5 4; }
+.lbl { font-size: 11px; fill: #93A0AC; }
+.lbl-a { font-size: 11px; fill: #56C2D4; font-weight: 600; }
+.note-t { font-size: 11.5px; font-weight: 700; fill: #E5EAEF; }
+.note-l { font-size: 11px; fill: #93A0AC; }
+.mono-t { font-family: ui-monospace, "SF Mono", Consolas, monospace; }
+.chip { fill: #1A212A; stroke: #2D3743; stroke-width: 1; }
+.chip-g { fill: #2B2313; stroke: #E0A94E; stroke-width: 1.2; }
+.chip-h { fill: #16333A; stroke: #56C2D4; stroke-width: 1.2; stroke-dasharray: 4 3; }
+.chip-t { font-size: 11.5px; font-weight: 600; fill: #E5EAEF; }
+.sess-bx { fill: #12171E; stroke: #2D3743; stroke-width: 1.2; }
+.sess-t { font-size: 12px; font-weight: 700; fill: #E5EAEF; }
+.fl-b { stroke: currentColor; stroke-width: 1.2; fill: none; stroke-dasharray: 5 5; opacity: 0.7; }
+</style><rect width="100%" height="100%" fill="#1A212A"/>
+        <defs>
+          <marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="currentColor"/>
+          </marker>
+          <marker id="ah-a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="#56C2D4"/>
+          </marker>
+        </defs>
+
+        <!-- lane headers -->
+        <text class="lane-h" x="150" y="34" text-anchor="middle">사용자</text>
+        <text class="lane-h" x="480" y="34" text-anchor="middle">감독 하네스 — 오케스트레이터</text>
+        <text class="lane-h" x="810" y="34" text-anchor="middle">opencode — 구현 실행기</text>
+
+        <!-- lane guides -->
+        <line class="lane-g" x1="150" y1="52" x2="150" y2="944"/>
+        <line class="lane-g" x1="480" y1="52" x2="480" y2="944"/>
+        <line class="lane-g" x1="810" y1="52" x2="810" y2="944"/>
+
+        <!-- ===== claude spine ===== -->
+        <!-- S1 -->
+        <rect class="bx" x="360" y="72" width="240" height="58" rx="9"/>
+        <rect class="bx-bar" x="360" y="86" width="3" height="30"/>
+        <text class="bx-t" x="480" y="96" text-anchor="middle">요청 접수</text>
+        <text class="bx-s" x="480" y="115" text-anchor="middle">/orchestrate 전역 스킬 로드</text>
+        <!-- S2 -->
+        <rect class="bx" x="360" y="160" width="240" height="58" rx="9"/>
+        <rect class="bx-bar" x="360" y="174" width="3" height="30"/>
+        <text class="bx-t" x="480" y="184" text-anchor="middle">인터뷰</text>
+        <text class="bx-s" x="480" y="203" text-anchor="middle">모호점·리스크를 선택지로 확인</text>
+        <!-- S3 -->
+        <rect class="bx" x="360" y="248" width="240" height="58" rx="9"/>
+        <rect class="bx-bar" x="360" y="262" width="3" height="30"/>
+        <text class="bx-t" x="480" y="272" text-anchor="middle">크기 분류 · 지시서 작성</text>
+        <text class="bx-s" x="480" y="291" text-anchor="middle">small / standard / large — .tasks/ 분할</text>
+        <!-- S4 GATE1 -->
+        <rect class="gate-bx" x="360" y="336" width="240" height="58" rx="9"/>
+        <text class="gate-t" x="480" y="360" text-anchor="middle">GATE 1 — 계획 승인</text>
+        <text class="bx-s" x="480" y="379" text-anchor="middle">여기까지 코드 변경 없음</text>
+        <!-- S5 -->
+        <rect class="bx" x="360" y="424" width="240" height="58" rx="9"/>
+        <rect class="bx-bar" x="360" y="438" width="3" height="30"/>
+        <text class="bx-t mono-t" x="480" y="448" text-anchor="middle">phase-claim.sh</text>
+        <text class="bx-s" x="480" y="467" text-anchor="middle">번호·워크트리·브랜치 원자 발급</text>
+        <!-- S6 -->
+        <rect class="bx" x="360" y="512" width="240" height="58" rx="9"/>
+        <rect class="bx-bar" x="360" y="526" width="3" height="30"/>
+        <text class="bx-t" x="480" y="536" text-anchor="middle">위임 — run-delegation.sh</text>
+        <text class="bx-s" x="480" y="555" text-anchor="middle">standard·large는 task-orchestrator 경유</text>
+        <!-- S7 -->
+        <rect class="bx" x="360" y="600" width="240" height="58" rx="9"/>
+        <rect class="bx-bar" x="360" y="614" width="3" height="30"/>
+        <text class="bx-t" x="480" y="624" text-anchor="middle">도메인 리뷰</text>
+        <text class="bx-s" x="480" y="643" text-anchor="middle">ECC 리뷰어 · codex-review.sh</text>
+        <!-- S8 GATE2 -->
+        <rect class="gate-bx" x="360" y="688" width="240" height="58" rx="9"/>
+        <text class="gate-t" x="480" y="712" text-anchor="middle">GATE 2 — 통합 승인</text>
+        <text class="bx-s" x="480" y="731" text-anchor="middle">페이즈 말 결과 일괄 확인</text>
+        <!-- S9 -->
+        <rect class="bx" x="360" y="776" width="240" height="58" rx="9"/>
+        <rect class="bx-bar" x="360" y="790" width="3" height="30"/>
+        <text class="bx-t" x="480" y="800" text-anchor="middle">보고 · phase-close.sh</text>
+        <text class="bx-s" x="480" y="819" text-anchor="middle">요약 보고 · 페이즈 종료</text>
+        <!-- S10 optional -->
+        <rect class="opt-bx" x="360" y="864" width="240" height="58" rx="9"/>
+        <text class="bx-t" x="480" y="888" text-anchor="middle">(선택) docker-ops 반영</text>
+        <text class="bx-s" x="480" y="907" text-anchor="middle">매니페스트 등급 · 별도 승인 게이트</text>
+
+        <!-- spine arrows -->
+        <line class="fl" x1="480" y1="132" x2="480" y2="157" marker-end="url(#ah)"/>
+        <line class="fl" x1="480" y1="220" x2="480" y2="245" marker-end="url(#ah)"/>
+        <line class="fl" x1="480" y1="308" x2="480" y2="333" marker-end="url(#ah)"/>
+        <line class="fl" x1="480" y1="396" x2="480" y2="421" marker-end="url(#ah)"/>
+        <line class="fl" x1="480" y1="484" x2="480" y2="509" marker-end="url(#ah)"/>
+        <line class="fl" x1="480" y1="658" x2="480" y2="685" marker-end="url(#ah)"/>
+        <line class="fl" x1="480" y1="748" x2="480" y2="773" marker-end="url(#ah)"/>
+        <line class="fl" x1="480" y1="836" x2="480" y2="861" marker-end="url(#ah)"/>
+
+        <!-- ===== user lane ===== -->
+        <rect class="pill" x="55" y="72" width="190" height="58" rx="12"/>
+        <text class="bx-t mono-t" x="150" y="96" text-anchor="middle" style="font-size:12px">cd 프로젝트 &amp;&amp; claude</text>
+        <text class="bx-s" x="150" y="115" text-anchor="middle">작업 지시 — 자연어 한 줄</text>
+        <line class="fl" x1="247" y1="101" x2="355" y2="101" marker-end="url(#ah)"/>
+
+        <rect class="pill" x="55" y="160" width="190" height="58" rx="12"/>
+        <text class="bx-t" x="150" y="184" text-anchor="middle" style="font-size:13px">선택지로 답변</text>
+        <text class="bx-s" x="150" y="203" text-anchor="middle">AskUserQuestion — 탭 한 번</text>
+        <line class="fl" x1="249" y1="189" x2="356" y2="189" marker-start="url(#ah)" marker-end="url(#ah)"/>
+
+        <rect class="pill" x="55" y="336" width="190" height="58" rx="12"/>
+        <text class="bx-t" x="150" y="360" text-anchor="middle" style="font-size:13px">계획 승인</text>
+        <text class="bx-s" x="150" y="379" text-anchor="middle">또는 수정 요청</text>
+        <line class="fl" x1="249" y1="365" x2="356" y2="365" marker-start="url(#ah)" marker-end="url(#ah)"/>
+
+        <rect class="pill" x="55" y="688" width="190" height="58" rx="12"/>
+        <text class="bx-t" x="150" y="712" text-anchor="middle" style="font-size:13px">통합 승인</text>
+        <text class="bx-s" x="150" y="731" text-anchor="middle">페이즈 종료 결정</text>
+        <line class="fl" x1="249" y1="717" x2="356" y2="717" marker-start="url(#ah)" marker-end="url(#ah)"/>
+
+        <rect class="pill" x="55" y="776" width="190" height="58" rx="12"/>
+        <text class="bx-t" x="150" y="800" text-anchor="middle" style="font-size:13px">결과 보고 수신</text>
+        <text class="bx-s" x="150" y="819" text-anchor="middle">다음 작업은 새 세션 권장</text>
+        <line class="fl" x1="356" y1="805" x2="249" y2="805" marker-end="url(#ah)"/>
+
+        <!-- ===== opencode lane ===== -->
+        <rect class="oc-bx" x="700" y="512" width="220" height="58" rx="9"/>
+        <text class="bx-t" x="810" y="536" text-anchor="middle">에이전트 TDD 구현</text>
+        <text class="bx-s" x="810" y="555" text-anchor="middle">테스트 먼저 → 구현 → 그린 확인</text>
+
+        <!-- delegation -->
+        <text class="lbl mono-t" x="650" y="526" text-anchor="middle">opencode run</text>
+        <text class="lbl mono-t" x="650" y="540" text-anchor="middle">--agent &lt;이름&gt;</text>
+        <line class="fl" x1="602" y1="550" x2="697" y2="550" marker-end="url(#ah)"/>
+
+        <!-- result back to review -->
+        <polyline class="fl" points="760,572 760,624 606,624" marker-end="url(#ah)"/>
+        <text class="lbl" x="688" y="614" text-anchor="middle">diff · 테스트 결과</text>
+
+        <!-- reject loop -->
+        <polyline class="fl-a" points="604,645 840,645 840,574" marker-end="url(#ah-a)"/>
+        <text class="lbl-a" x="722" y="661" text-anchor="middle">반려 → heavy 승격 재위임</text>
+
+        <!-- task loop: review pass -> next task -->
+        <polyline class="fl" points="358,643 332,643 332,527 355,527" marker-end="url(#ah)"/>
+        <text class="lbl" x="324" y="589" text-anchor="end">다음 task ↺</text>
+
+        <!-- part boundary (session handoff point) -->
+        <line class="fl-b" x1="320" y1="673" x2="640" y2="673"/>
+        <text class="lbl" x="312" y="668" text-anchor="end">긴 페이즈: 파트 경계 = 세션 경계</text>
+        <text class="lbl" x="312" y="682" text-anchor="end">HANDOFF → 새 세션 재개</text>
+
+        <!-- guardrails note -->
+        <rect class="opt-bx" x="662" y="690" width="286" height="86" rx="9"/>
+        <text class="note-t" x="805" y="712" text-anchor="middle">위임 가드레일</text>
+        <text class="note-l" x="805" y="732" text-anchor="middle">permission 가드 — commit·push·docker·sudo 차단</text>
+        <text class="note-l" x="805" y="748" text-anchor="middle">모델 폴백 — model-policy 체인, MODEL_USED 확인</text>
+        <text class="note-l" x="805" y="764" text-anchor="middle">전역 락 — 위임 동시 실행 직렬화</text>
+      </svg>

@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 495" role="img"
+           aria-label="standard·large task의 위임 시퀀스. 메인 claude가 프롬프트 파일을 쓰고 run-delegation.sh로 백그라운드 위임을 실행하면 opencode 에이전트가 TDD로 구현한다. 완료 후 메인이 task-orchestrator 서브에이전트에 task 파일과 로그 경로를 전달하고, 서브가 로그·TDD 확인, 도메인 검증, 로컬 커밋까지 수행해 보고한다. 메인이 도메인 리뷰어를 병렬 호출해 판정하고, 반려 시 heavy 티어로 재위임한다."><style>
+svg { font-family: -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", system-ui, sans-serif; color: #93A0AC; }
+.lane-h { font-size: 13px; font-weight: 700; fill: #E5EAEF; letter-spacing: 0.02em; }
+.lane-g { stroke: currentColor; stroke-dasharray: 3 6; opacity: 0.28; }
+.bx { fill: #1A212A; stroke: #2D3743; stroke-width: 1.2; }
+.bx-bar { fill: #56C2D4; }
+.bx-t { font-size: 14px; font-weight: 650; fill: #E5EAEF; }
+.bx-s { font-size: 11px; fill: #93A0AC; }
+.gate-bx { fill: #2B2313; stroke: #E0A94E; stroke-width: 1.3; }
+.gate-t { font-size: 14px; font-weight: 700; fill: #E0A94E; }
+.pill { fill: #222B35; stroke: #2D3743; stroke-width: 1; }
+.oc-bx { fill: #1A212A; stroke: #56C2D4; stroke-width: 1.5; }
+.opt-bx { fill: none; stroke: #2D3743; stroke-width: 1.2; stroke-dasharray: 5 4; }
+.fl { stroke: currentColor; stroke-width: 1.4; fill: none; }
+.fl-a { stroke: #56C2D4; stroke-width: 1.4; fill: none; stroke-dasharray: 5 4; }
+.lbl { font-size: 11px; fill: #93A0AC; }
+.lbl-a { font-size: 11px; fill: #56C2D4; font-weight: 600; }
+.note-t { font-size: 11.5px; font-weight: 700; fill: #E5EAEF; }
+.note-l { font-size: 11px; fill: #93A0AC; }
+.mono-t { font-family: ui-monospace, "SF Mono", Consolas, monospace; }
+.chip { fill: #1A212A; stroke: #2D3743; stroke-width: 1; }
+.chip-g { fill: #2B2313; stroke: #E0A94E; stroke-width: 1.2; }
+.chip-h { fill: #16333A; stroke: #56C2D4; stroke-width: 1.2; stroke-dasharray: 4 3; }
+.chip-t { font-size: 11.5px; font-weight: 600; fill: #E5EAEF; }
+.sess-bx { fill: #12171E; stroke: #2D3743; stroke-width: 1.2; }
+.sess-t { font-size: 12px; font-weight: 700; fill: #E5EAEF; }
+.fl-b { stroke: currentColor; stroke-width: 1.2; fill: none; stroke-dasharray: 5 5; opacity: 0.7; }
+</style><rect width="100%" height="100%" fill="#1A212A"/>
+        <defs>
+          <marker id="ah4" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="currentColor"/>
+          </marker>
+          <marker id="ah4-a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="#56C2D4"/>
+          </marker>
+        </defs>
+
+        <!-- lifelines -->
+        <line class="lane-g" x1="150" y1="76" x2="150" y2="452"/>
+        <line class="lane-g" x1="450" y1="76" x2="450" y2="452"/>
+        <line class="lane-g" x1="740" y1="76" x2="740" y2="452"/>
+
+        <!-- actors -->
+        <rect class="bx" x="60" y="20" width="180" height="52" rx="9"/>
+        <text class="bx-t" x="150" y="41" text-anchor="middle">메인 claude</text>
+        <text class="bx-s" x="150" y="60" text-anchor="middle">위임 실행·리뷰 전속</text>
+        <rect class="bx" x="360" y="20" width="180" height="52" rx="9"/>
+        <text class="bx-t" x="450" y="41" text-anchor="middle">opencode 에이전트</text>
+        <text class="bx-s" x="450" y="60" text-anchor="middle">run-delegation.sh 경유</text>
+        <rect class="bx" x="650" y="20" width="180" height="52" rx="9"/>
+        <text class="bx-t" x="740" y="41" text-anchor="middle">task-orchestrator</text>
+        <text class="bx-s" x="740" y="60" text-anchor="middle">claude 서브에이전트</text>
+
+        <!-- messages -->
+        <text class="lbl" x="300" y="100" text-anchor="middle">① task&lt;N&gt;.prompt 작성 → 백그라운드 위임 실행</text>
+        <line class="fl" x1="150" y1="112" x2="446" y2="112" marker-end="url(#ah4)"/>
+
+        <rect class="oc-bx" x="365" y="130" width="170" height="44" rx="8"/>
+        <text class="bx-t" x="450" y="148" text-anchor="middle" style="font-size:12.5px">TDD 구현</text>
+        <text class="bx-s" x="450" y="165" text-anchor="middle">모델 폴백 · 전역 락</text>
+
+        <text class="lbl" x="300" y="193" text-anchor="middle">② 완료 통지 — task&lt;N&gt;.log · MODEL_USED= · exit</text>
+        <line class="fl" x1="450" y1="204" x2="154" y2="204" marker-end="url(#ah4)"/>
+
+        <text class="lbl" x="445" y="229" text-anchor="middle">③ task 파일 + 전파 제약 + 로그 경로만 전달 (전체 지시서 금지)</text>
+        <line class="fl" x1="150" y1="240" x2="646" y2="240" marker-end="url(#ah4)"/>
+
+        <rect class="bx" x="628" y="258" width="224" height="56" rx="8"/>
+        <text class="bx-s" x="740" y="280" text-anchor="middle" style="fill: #E5EAEF; font-weight: 600">④ 로그·경계·TDD 확인</text>
+        <text class="bx-s" x="740" y="298" text-anchor="middle" style="fill: #E5EAEF; font-weight: 600">도메인 검증 → 로컬 커밋</text>
+
+        <text class="lbl" x="445" y="335" text-anchor="middle">⑤ 보고 — 커밋 해시·검증 결과·전파 제약 (실패 시 "재위임 필요" + fix.prompt)</text>
+        <line class="fl" x1="740" y1="346" x2="154" y2="346" marker-end="url(#ah4)"/>
+
+        <rect class="bx" x="62" y="364" width="176" height="44" rx="8"/>
+        <text class="bx-s" x="150" y="382" text-anchor="middle" style="fill: #E5EAEF; font-weight: 600">⑥ 도메인 리뷰어</text>
+        <text class="bx-s" x="150" y="399" text-anchor="middle">병렬 호출 → 판정</text>
+
+        <text class="lbl-a" x="300" y="425" text-anchor="middle">⑦ 반려·검증 실패 → heavy 승격 재위임 (동일 task 최대 2회)</text>
+        <line class="fl-a" x1="150" y1="436" x2="446" y2="436" marker-end="url(#ah4-a)"/>
+
+        <text class="lbl" x="450" y="478" text-anchor="middle">판정 pass → 다음 task로 ①부터 반복 · 계획된 파트가 끝나면 HANDOFF 후 새 세션 (§02)</text>
+      </svg>

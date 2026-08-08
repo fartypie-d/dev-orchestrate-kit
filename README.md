@@ -37,6 +37,26 @@ has three layers:
    servers with no X display, GPU, or per-user Chrome. Usable **independently** of the
    orchestration workflow (see below).
 
+## Prerequisites
+
+- **One supervisor subscription** — either a **Claude plan** (Pro / Max) for Claude Code, or
+  an **OpenAI plan** for Codex CLI. `--plan=pro|max5|max20` tunes token profiles to your
+  Claude plan.
+- **At least one delegation provider** — they are interchangeable; each one you add deepens
+  the fallback pool:
+
+  | Provider | What you need | Wire-up |
+  |---|---|---|
+  | OpenAI (GPT) | ChatGPT subscription | `opencode auth login -p openai` (OAuth) |
+  | xAI (Grok) | subscription | `opencode auth login -p xai` (OAuth) |
+  | Qwen / DeepSeek | API key | `QWEN_API_KEY` in `~/.config/opencode/secrets.env` |
+  | Gemini (antigravity proxy) | API key | `ANTIGRAVITY_API_KEY` + `containers/antigravity` |
+
+  A supervisor-side OpenAI subscription can double as a delegation provider — one
+  subscription, two roles.
+- **Tools** — bash 3.2+, git, python3, jq, and the [opencode](https://opencode.ai) CLI.
+  Docker is only needed for the optional containers and the usage dashboard.
+
 ## Quick start
 
 ```bash
@@ -79,6 +99,17 @@ flowchart LR
   (so a typo'd model ID can't silently eat your fallbacks).
 - **The project roster is the single source of truth.** `.claude/orchestrate.md` maps agents,
   reviewers, and verification commands; both harnesses share it. **No roster, no delegation.**
+
+### Workflow in detail
+
+One full phase cycle — the left lane is everything the user actually does (one instruction,
+a few multiple-choice answers, two approvals). Labels are in Korean; the full walkthrough
+with all five diagrams lives in [docs/WORKFLOW.ko.md](./docs/WORKFLOW.ko.md).
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/fig-flow-dark.svg">
+  <img alt="Full workflow: user, supervisor harness, and opencode lanes with two approval gates" src="docs/assets/fig-flow.svg">
+</picture>
 
 ## Harness combinations
 

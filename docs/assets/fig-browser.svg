@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 360" role="img"
+           aria-label="chrome-cdp 컨테이너 구조. insane-fetch CLI와 HTTP 호출자는 127.0.0.1:9223의 insane-api로, 다른 컨테이너는 network alias로 insane-api에 접근하고, Playwright·Puppeteer는 127.0.0.1:9222의 CloakBrowser CDP에 직접 붙는다. insane-api는 컨테이너 내부 루프백 CDP로 CloakBrowser를 구동한다. 두 포트 모두 127.0.0.1 전용이다."><style>
+svg { font-family: -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", system-ui, sans-serif; color: #5D6873; }
+.lane-h { font-size: 13px; font-weight: 700; fill: #212831; letter-spacing: 0.02em; }
+.lane-g { stroke: currentColor; stroke-dasharray: 3 6; opacity: 0.28; }
+.bx { fill: #FFFFFF; stroke: #D7DDE3; stroke-width: 1.2; }
+.bx-bar { fill: #0B7285; }
+.bx-t { font-size: 14px; font-weight: 650; fill: #212831; }
+.bx-s { font-size: 11px; fill: #5D6873; }
+.gate-bx { fill: #F8EFDC; stroke: #A26A00; stroke-width: 1.3; }
+.gate-t { font-size: 14px; font-weight: 700; fill: #A26A00; }
+.pill { fill: #EBEFF2; stroke: #D7DDE3; stroke-width: 1; }
+.oc-bx { fill: #FFFFFF; stroke: #0B7285; stroke-width: 1.5; }
+.opt-bx { fill: none; stroke: #D7DDE3; stroke-width: 1.2; stroke-dasharray: 5 4; }
+.fl { stroke: currentColor; stroke-width: 1.4; fill: none; }
+.fl-a { stroke: #0B7285; stroke-width: 1.4; fill: none; stroke-dasharray: 5 4; }
+.lbl { font-size: 11px; fill: #5D6873; }
+.lbl-a { font-size: 11px; fill: #0B7285; font-weight: 600; }
+.note-t { font-size: 11.5px; font-weight: 700; fill: #212831; }
+.note-l { font-size: 11px; fill: #5D6873; }
+.mono-t { font-family: ui-monospace, "SF Mono", Consolas, monospace; }
+.chip { fill: #FFFFFF; stroke: #D7DDE3; stroke-width: 1; }
+.chip-g { fill: #F8EFDC; stroke: #A26A00; stroke-width: 1.2; }
+.chip-h { fill: #E3F0F2; stroke: #0B7285; stroke-width: 1.2; stroke-dasharray: 4 3; }
+.chip-t { font-size: 11.5px; font-weight: 600; fill: #212831; }
+.sess-bx { fill: #F4F6F8; stroke: #D7DDE3; stroke-width: 1.2; }
+.sess-t { font-size: 12px; font-weight: 700; fill: #212831; }
+.fl-b { stroke: currentColor; stroke-width: 1.2; fill: none; stroke-dasharray: 5 5; opacity: 0.7; }
+</style><rect width="100%" height="100%" fill="#FFFFFF"/>
+        <defs>
+          <marker id="ah5" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="currentColor"/>
+          </marker>
+        </defs>
+
+        <!-- container -->
+        <rect class="opt-bx" x="430" y="40" width="440" height="280" rx="12"/>
+        <text class="note-t" x="450" y="66">chrome-cdp 컨테이너 — containers/browser/</text>
+        <text class="note-l" x="450" y="84">start-both.sh 감독 — 한쪽이 죽으면 컨테이너 재시작</text>
+
+        <rect class="bx" x="460" y="100" width="380" height="58" rx="9"/>
+        <rect class="bx-bar" x="460" y="114" width="3" height="30"/>
+        <text class="bx-t mono-t" x="650" y="124" text-anchor="middle">insane-api — :9223</text>
+        <text class="bx-s" x="650" y="143" text-anchor="middle">우회 에스컬레이션 파이프라인 · SSRF 가드</text>
+
+        <line class="fl" x1="650" y1="160" x2="650" y2="217" marker-end="url(#ah5)"/>
+        <text class="lbl" x="662" y="192" text-anchor="start">CDP — 컨테이너 내부 루프백</text>
+
+        <rect class="bx" x="460" y="222" width="380" height="58" rx="9"/>
+        <rect class="bx-bar" x="460" y="236" width="3" height="30"/>
+        <text class="bx-t mono-t" x="650" y="246" text-anchor="middle">CloakBrowser Chromium — :9222</text>
+        <text class="bx-s" x="650" y="265" text-anchor="middle">헤드풀(Xvfb) · 스텔스 · fingerprint 멀티플렉스</text>
+
+        <text class="lbl" x="650" y="304" text-anchor="middle">두 포트 모두 127.0.0.1 전용 — 외부·테일넷 공개 금지 · noVNC 오버레이는 보기 전용</text>
+
+        <!-- callers -->
+        <rect class="pill" x="60" y="80" width="240" height="52" rx="12"/>
+        <text class="bx-t" x="180" y="102" text-anchor="middle" style="font-size:13px">insane-fetch CLI · HTTP 호출자</text>
+        <text class="bx-s mono-t" x="180" y="120" text-anchor="middle">127.0.0.1:9223 /fetch</text>
+        <line class="fl" x1="302" y1="106" x2="456" y2="106" marker-end="url(#ah5)"/>
+
+        <rect class="pill" x="60" y="160" width="240" height="52" rx="12"/>
+        <text class="bx-t" x="180" y="182" text-anchor="middle" style="font-size:13px">다른 컨테이너</text>
+        <text class="bx-s mono-t" x="180" y="200" text-anchor="middle">chrome-cdp:9223 (network alias)</text>
+        <polyline class="fl" points="302,186 380,186 380,140 456,140" marker-end="url(#ah5)"/>
+
+        <rect class="pill" x="60" y="240" width="240" height="52" rx="12"/>
+        <text class="bx-t" x="180" y="262" text-anchor="middle" style="font-size:13px">Playwright · Puppeteer</text>
+        <text class="bx-s mono-t" x="180" y="280" text-anchor="middle">127.0.0.1:9222?fingerprint=N</text>
+        <line class="fl" x1="302" y1="266" x2="456" y2="266" marker-end="url(#ah5)"/>
+      </svg>

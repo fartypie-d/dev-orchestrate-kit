@@ -28,6 +28,24 @@
 3. **헤드리스 서버용 브라우저** — 개발 서버에서 브라우저를 쓰기 어려운 환경을 위한 스텔스 CDP +
    우회 fetch 컨테이너. 오케스트레이션과 **독립적으로도** 쓸 수 있다 (아래 참조).
 
+## 사전 준비
+
+- **감독 하네스 구독 1개** — Claude Code용 **Claude 요금제**(Pro / Max) 또는 Codex CLI용
+  **OpenAI 요금제** 중 하나. `--plan=pro|max5|max20`이 Claude 요금제에 맞춰 토큰 프로파일을
+  조정한다.
+- **위임 프로바이더 1개 이상** — 서로 대체 가능하며, 추가할수록 폴백 풀이 깊어진다:
+
+  | 프로바이더 | 필요한 것 | 연결 |
+  |---|---|---|
+  | OpenAI (GPT) | ChatGPT 구독 | `opencode auth login -p openai` (OAuth) |
+  | xAI (Grok) | 구독 | `opencode auth login -p xai` (OAuth) |
+  | Qwen / DeepSeek | API 키 | `~/.config/opencode/secrets.env`의 `QWEN_API_KEY` |
+  | Gemini (antigravity 프록시) | API 키 | `ANTIGRAVITY_API_KEY` + `containers/antigravity` |
+
+  감독용 OpenAI 구독은 위임 프로바이더로도 겸용된다 — 구독 하나, 역할 둘.
+- **도구** — bash 3.2+, git, python3, jq, [opencode](https://opencode.ai) CLI.
+  Docker는 선택 컨테이너·usage-dashboard에만 필요하다.
+
 ## 빠른 시작
 
 ```bash
@@ -68,6 +86,16 @@ flowchart LR
   `model-doctor.sh` 가 실측 검증한다 (오타 난 모델 ID 가 조용히 폴백만 소모하는 것을 막는다).
 - **프로젝트 로스터** — `.claude/orchestrate.md` 가 에이전트·리뷰어 매핑·검증 명령의 단일 소스다.
   두 하네스가 이 파일을 공유한다. **로스터 없이 위임 금지.**
+
+### 워크플로우 상세
+
+1 페이즈의 전체 사이클 — 왼쪽 레인이 사용자가 실제로 하는 일의 전부다(지시 한 줄, 선택지 답변,
+승인 두 번). 다이어그램 5종 전체와 단계별 설명은 [docs/WORKFLOW.ko.md](./docs/WORKFLOW.ko.md) 참조.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/fig-flow-dark.svg">
+  <img alt="전체 워크플로우 — 사용자·감독 하네스·opencode 3레인, 승인 게이트 2개" src="docs/assets/fig-flow.svg">
+</picture>
 
 ## 하네스 조합
 

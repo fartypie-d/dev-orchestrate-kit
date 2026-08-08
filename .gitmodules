@@ -1,0 +1,3 @@
+[submodule "components/usage-dashboard"]
+	path = components/usage-dashboard
+	url = https://github.com/fartypie-d/usage-dashboard.git

@@ -6,15 +6,5 @@ __pycache__/
 .claude/settings.local.json
 .superpowers/
 .vscode/
-containers/antigravity/data/
 containers/browser/data/
-
-# secrets — defensive patterns for public repo
-.env
-.env.*
-!*.env.example
-secrets.env
-*.pem
-*.key
-credentials.json
-service-account*.json
+.claude/worktrees/

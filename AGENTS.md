@@ -19,7 +19,7 @@ core/                 # 하네스 무관 — claude/codex 단어를 모른다
 adapters/
   claude/             # 전역 스킬 + 프로젝트 훅·settings·CLAUDE.md·에이전트
   codex/              # ~/.codex/prompts + .codex/ 프로젝트 계층
-containers/           # browser(CDP+우회 API)·antigravity 프록시 compose 번들
+containers/           # browser(CDP+우회 API) — 서브모듈 insane-cloak
 tests/                # python unittest (스캐폴드·phase-tools)
 ```
 

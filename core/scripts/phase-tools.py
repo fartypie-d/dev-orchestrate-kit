@@ -8,7 +8,7 @@ git 밖·세션 밖 파일이므로 병렬 세션의 브랜치 가시성 한계�
 사용:
   python3 scripts/phase-tools.py init --default-branch develop --docs-dir DOCs
   python3 scripts/phase-tools.py claim <slug> [--base <ref>]
-  python3 scripts/phase-tools.py close <N> [--keep-worktree] [--force]
+  python3 scripts/phase-tools.py close <N> [--keep-worktree] [--force] [--target <ref>]
   python3 scripts/phase-tools.py janitor
 """
 from __future__ import annotations
@@ -28,7 +28,7 @@ PHASE_RE = re.compile(r"phase[_-]?(\d+)", re.IGNORECASE)
 STALE_LOG_DAYS = 7
 STALE_PR_DAYS = 3
 # 병합돼 있어도 janitor가 절대 삭제하지 않는 장수 브랜치
-PROTECTED_BRANCHES = {"main", "master", "develop"}
+PROTECTED_BRANCHES = {"main", "master", "develop", "even-mode"}
 
 
 def state_dir() -> Path:
@@ -63,7 +63,7 @@ def is_clean(path) -> bool:
 
 
 def is_merged(root, ref, target) -> bool:
-    return git(root, "merge-base", "--is-ancestor", ref, target,
+    return git(root, "merge-base", "--is-ancestor", "--", ref, target,
                check=False).returncode == 0
 
 
@@ -231,7 +231,29 @@ def cmd_close(args):
             return 64
         d = reg.data
         db = d["default_branch"]
-        target = merge_target(root, db)
+        if args.target:
+            if git(root, "rev-parse", "--verify", args.target,
+                   check=False).returncode != 0:
+                print(f"--target ref 를 찾을 수 없음: {args.target}",
+                      file=sys.stderr)
+                return 2
+            targets = [args.target]
+        else:
+            targets = []
+            default_target = merge_target(root, db)
+            if git(root, "rev-parse", "--verify", default_target,
+                   check=False).returncode == 0:
+                targets.append(default_target)
+            if default_target != db and \
+                    git(root, "rev-parse", "--verify", db,
+                        check=False).returncode == 0:
+                targets.append(db)
+            current = git(root, "symbolic-ref", "--short", "HEAD",
+                          check=False).stdout.strip()
+            if current and current not in targets:
+                targets.append(current)
+        if not targets:
+            lines.append("병합 판정 기준 없음(default_branch/HEAD 확인 불가) — 보존")
         entry = next((e for e in d["active"] if e["phase"] == n), None)
         wt_rel = entry["worktree"] if entry else None
         if wt_rel is None:
@@ -255,7 +277,8 @@ def cmd_close(args):
                 lines.append(f"워크트리 dirty — 보존: {wt_rel}")
             elif args.keep_worktree:
                 lines.append(f"워크트리 보존(--keep-worktree): {wt_rel}")
-            elif wt_branch and is_merged(root, wt_branch, target):
+            elif wt_branch and any(is_merged(root, wt_branch, target)
+                                   for target in targets if target != wt_branch):
                 git(root, "worktree", "remove", wt_rel)
                 lines.append(f"워크트리 제거: {wt_rel}")
                 branch = wt_branch
@@ -263,7 +286,8 @@ def cmd_close(args):
                 lines.append(f"워크트리 미병합 — 보존: {wt_rel} ({wt_branch})")
 
         if branch and not (wt_rel and (root / wt_rel).is_dir()):
-            if is_merged(root, branch, target) and \
+            if any(is_merged(root, branch, target)
+                   for target in targets if target != branch) and \
                     git(root, "branch", "-d", branch, check=False).returncode == 0:
                 lines.append(f"로컬 브랜치 삭제: {branch}")
 
@@ -443,6 +467,8 @@ def main(argv=None):
     p_close.add_argument("number", type=int)
     p_close.add_argument("--keep-worktree", action="store_true")
     p_close.add_argument("--force", action="store_true")
+    p_close.add_argument("--target", default=None,
+                         help="병합 판정에 사용할 단일 ref")
     p_close.set_defaults(fn=cmd_close)
 
     p_jan = sub.add_parser("janitor", help="세션 시작 잔재 정리·보고 (항상 exit 0)")

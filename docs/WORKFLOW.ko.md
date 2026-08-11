@@ -161,8 +161,9 @@ adapters만 갈아 끼운다.
 
 워크플로우와 별개로 호스트의 모든 사용자·도구가 쓰는 웹 접근 인프라. 컨테이너 하나가 포트 두
 개를 서빙한다 — X 디스플레이·GPU·특수 권한 없이 동작한다(브라우저는 컨테이너 내부 Xvfb에서
-헤드풀로 뜬다). v2부터 킷의 `containers/browser/`에 번들되어(엔진 소스 vendored) 어느 머신에서든
-`docker compose up`으로 재현된다. 오케스트레이션과 독립적으로도 쓸 수 있다.
+헤드풀로 뜬다). 별도 저장소 [insane-cloak](https://github.com/fartypie-d/insane-cloak)에서 개발되고
+킷은 `containers/browser` 서브모듈로 참조한다 — `git submodule update --init containers/browser`
+후 어느 머신에서든 `docker compose up`으로 재현된다. 오케스트레이션과 독립적으로도 쓸 수 있다.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="assets/fig-browser-dark.svg">

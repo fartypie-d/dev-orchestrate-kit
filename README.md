@@ -50,7 +50,7 @@ has three layers:
   | OpenAI (GPT) | ChatGPT subscription | `opencode auth login -p openai` (OAuth) |
   | xAI (Grok) | subscription | `opencode auth login -p xai` (OAuth) |
   | Qwen / DeepSeek | API key | `QWEN_API_KEY` in `~/.config/opencode/secrets.env` |
-  | Gemini (antigravity proxy) | API key | `ANTIGRAVITY_API_KEY` + `containers/antigravity` |
+  | Gemini (antigravity proxy) | API key + proxy | `ANTIGRAVITY_API_KEY` — the proxy (:8045) is not bundled; bring your own, see [PORTING](docs/PORTING.md) |
 
   A supervisor-side OpenAI subscription can double as a delegation provider — one
   subscription, two roles.
@@ -103,12 +103,12 @@ flowchart LR
 ### Workflow in detail
 
 One full phase cycle — the left lane is everything the user actually does (one instruction,
-a few multiple-choice answers, two approvals). Labels are in Korean; the full walkthrough
-with all five diagrams lives in [docs/WORKFLOW.ko.md](./docs/WORKFLOW.ko.md).
+a few multiple-choice answers, two approvals). The full walkthrough with all five diagrams
+lives in [docs/WORKFLOW.md](./docs/WORKFLOW.md) (Korean: [docs/WORKFLOW.ko.md](./docs/WORKFLOW.ko.md)).
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/fig-flow-dark.svg">
-  <img alt="Full workflow: user, supervisor harness, and opencode lanes with two approval gates" src="docs/assets/fig-flow.svg">
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/fig-flow-en-dark.svg">
+  <img alt="Full workflow: user, supervisor harness, and opencode lanes with two approval gates" src="docs/assets/fig-flow-en.svg">
 </picture>
 
 ## Harness combinations
@@ -131,7 +131,7 @@ with all five diagrams lives in [docs/WORKFLOW.ko.md](./docs/WORKFLOW.ko.md).
 | `core/project-template/` | Roster, agent conventions, docs system (harness-agnostic) |
 | `adapters/claude/` | Global skills + project hooks, settings, CLAUDE.md, plan profiles |
 | `adapters/codex/` | `~/.codex/prompts` + `.codex/` project layer, `codex-review.sh` |
-| `containers/` | Browser (stealth CDP + escalating fetch API) · antigravity proxy |
+| `containers/browser/` | Stealth CDP + escalating fetch API (git submodule → [insane-cloak](https://github.com/fartypie-d/insane-cloak)) |
 | `components/usage-dashboard` | Session usage observability dashboard (git submodule) |
 
 ## usage-dashboard — session observability (submodule)
@@ -154,10 +154,14 @@ release time.
 
 ## Standalone module — the browser container
 
-Even without the orchestration workflow, `containers/browser/` works on its own. It exists
-for headless dev servers that need a browser but have no X display, GPU, or per-user Chrome:
+The browser container lives in its own repository,
+[insane-cloak](https://github.com/fartypie-d/insane-cloak), referenced here as the
+`containers/browser` submodule. Even without the orchestration workflow it works on its own —
+it exists for headless dev servers that need a browser but have no X display, GPU, or
+per-user Chrome:
 
 ```bash
+git submodule update --init containers/browser   # once, to fetch the submodule
 cd containers/browser
 bash insane-api/vendor/sync-vendor.sh    # vendor the upstream MIT engine at a pinned commit
 docker compose up -d
@@ -166,6 +170,26 @@ docker compose up -d
 
 Need to see the screen? Add the noVNC overlay (`docker-compose.novnc.yml`, pinned to
 127.0.0.1, view-only). Details and security notes: `containers/browser/README.md`.
+
+### Using it over MCP
+
+Point `chrome-devtools-mcp` at the container's CDP (`:9222`) and a harness like Claude Code
+drives the browser directly. The MCP server does not spawn its own browser, so the stealth
+fingerprint and the session are preserved.
+
+```json
+{
+  "mcpServers": {
+    "chrome-devtools": {
+      "command": "npx",
+      "args": ["-y", "chrome-devtools-mcp@latest", "--browserUrl", "http://127.0.0.1:9222"]
+    }
+  }
+}
+```
+
+To isolate per caller, append `?fingerprint=<name>` to `--browserUrl`. Full details, including
+security notes, are in the MCP section of `containers/browser/README.md`.
 
 ## Token profiles per Claude plan
 
@@ -179,8 +203,9 @@ savings come from the worker class and thinking budgets.
 - **This repository is the single source.** Improve an orchestration asset on any machine →
   commit to the kit → push → pull on other machines and re-run `./install.sh` (idempotent).
 - Don't hand-edit `~/.claude/skills/orchestrate` and call it done — the next install reverts it.
-- **Exception — containers originate on the dev host.** Fix the host container first, then
-  mirror into `containers/browser/`.
+- **Exception — the browser container is a separate repository.** Fix the container on the dev
+  host first, mirror it into [insane-cloak](https://github.com/fartypie-d/insane-cloak), then
+  bump only the `containers/browser` submodule pointer here.
 - **Exception — model-policy is generated.** The source of truth is the
   `core/opencode/provider-models.json` mapping table.
 - Never included: secrets (`secrets.env`), subscription OAuth (per-machine login), memory and

@@ -14,6 +14,7 @@ def run_tool(args, cwd, env, check=False):
     r = subprocess.run(
         [sys.executable, str(TOOLS), *args],
         cwd=cwd, env=env, capture_output=True, text=True,
+        timeout=60,
     )
     if check and r.returncode != 0:
         raise AssertionError(f"phase-tools {args} 실패: {r.stdout}\n{r.stderr}")
@@ -32,7 +33,7 @@ class Base(unittest.TestCase):
         }
         subprocess.run(
             ["git", "init", "-b", "develop", str(self.root)],
-            check=True, capture_output=True,
+            check=True, capture_output=True, timeout=60,
         )
         self.git("config", "user.email", "t@t")
         self.git("config", "user.name", "t")
@@ -47,7 +48,7 @@ class Base(unittest.TestCase):
     def git(self, *args):
         return subprocess.run(
             ["git", "-C", str(self.root), *args],
-            check=True, capture_output=True, text=True,
+            check=True, capture_output=True, text=True, timeout=60,
         )
 
     def init_registry(self):
@@ -100,7 +101,7 @@ class TestClaim(Base):
         self.assertTrue(wt.is_dir())
         head = subprocess.run(
             ["git", "-C", str(wt), "rev-parse", "--abbrev-ref", "HEAD"],
-            capture_output=True, text=True, check=True,
+            capture_output=True, text=True, check=True, timeout=60,
         ).stdout.strip()
         self.assertEqual(head, "feature/phase8-my-feature")
         reg = self.registry()
@@ -125,7 +126,7 @@ class TestClaim(Base):
             )
             for i in range(2)
         ]
-        outs = [p.communicate()[0] for p in procs]
+        outs = [p.communicate(timeout=60)[0] for p in procs]
         self.assertTrue(all(p.returncode == 0 for p in procs))
         nums = sorted(
             int(line.split("=")[1])
@@ -146,9 +147,9 @@ class TestClose(Base):
         )
         (wt / "b.txt").write_text("b\n")
         subprocess.run(["git", "-C", str(wt), "add", "."],
-                       check=True, capture_output=True)
+                       check=True, capture_output=True, timeout=60)
         subprocess.run(["git", "-C", str(wt), "commit", "-m", "work"],
-                       check=True, capture_output=True)
+                       check=True, capture_output=True, timeout=60)
         if merge:
             self.git("merge", "--no-ff", f"feature/phase8-{slug}", "-m", "merge")
         return wt
@@ -167,7 +168,7 @@ class TestClose(Base):
         doc = wt / "DOCs" / "PHASE8_feat-x.md"
         doc.write_text("---\nphase: 8\nstatus: in-progress\n---\n")
         subprocess.run(["git", "-C", str(wt), "commit", "-am", "wip"],
-                       check=True, capture_output=True)
+                       check=True, capture_output=True, timeout=60)
         r = run_tool(["close", "8"], self.root, self.env)
         self.assertEqual(r.returncode, 2)
         self.assertTrue(wt.exists())  # 아무것도 지우지 않음
@@ -189,6 +190,41 @@ class TestClose(Base):
         self.assertFalse((orch / "p8-task1.log").exists())
         self.assertTrue((orch / "archive/phase8/p8-task1.log").exists())
 
+    def _merge_into_integration(self, slug="integration"):
+        wt = self._claim_and_finish(slug, merge=False)
+        self.git("checkout", "-b", "feat/integration")
+        self.git("merge", "--no-ff", f"feature/phase8-{slug}", "-m", "merge")
+        return wt
+
+    def test_close_removes_worktree_merged_into_current_integration_branch(self):
+        wt = self._merge_into_integration()
+        run_tool(["close", "8"], self.root, self.env, check=True)
+        self.assertFalse(wt.exists())
+        self.assertEqual(self.registry()["active"], [])
+
+    def test_close_target_uses_only_specified_ref(self):
+        wt = self._merge_into_integration("target-only")
+        run_tool(["close", "8", "--target", "develop"],
+                 self.root, self.env, check=True)
+        self.assertTrue(wt.exists())
+        self.assertEqual(self.registry()["active"], [])
+
+    def test_close_keeps_unmerged_worktree_when_main_uses_same_branch(self):
+        wt = self._claim_and_finish("self-reference", merge=False)
+        self.git("checkout", "--ignore-other-worktrees",
+                 "feature/phase8-self-reference")
+        r = run_tool(["close", "8"], self.root, self.env, check=True)
+        self.assertTrue(wt.exists())
+        self.assertIn("워크트리 미병합 — 보존", r.stdout)
+
+    def test_close_rejects_missing_target_without_removing_worktree(self):
+        wt = self._claim_and_finish("invalid-target", merge=False)
+        r = run_tool(["close", "8", "--target", "missing-target"],
+                     self.root, self.env)
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("--target ref 를 찾을 수 없음: missing-target", r.stderr)
+        self.assertTrue(wt.exists())
+
 
 class TestJanitor(Base):
     def test_janitor_removes_merged_clean_worktree_and_branch(self):
@@ -197,9 +233,9 @@ class TestJanitor(Base):
         wt = self.root / ".claude/worktrees/phase8-done-work"
         (wt / "b.txt").write_text("b\n")
         subprocess.run(["git", "-C", str(wt), "add", "."],
-                       check=True, capture_output=True)
+                       check=True, capture_output=True, timeout=60)
         subprocess.run(["git", "-C", str(wt), "commit", "-m", "work"],
-                       check=True, capture_output=True)
+                       check=True, capture_output=True, timeout=60)
         self.git("merge", "--no-ff", "feature/phase8-done-work", "-m", "merge")
         r = run_tool(["janitor"], self.root, self.env, check=True)
         self.assertFalse(wt.exists())

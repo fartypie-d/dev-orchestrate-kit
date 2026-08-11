@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 300" role="img"
+           aria-label="How one phase splits into two sessions (parts). Session 1 does the interview, brief, GATE 1, and tasks 1-3, then writes HANDOFF.md and ends. Session 2 reads only HANDOFF and the current task files, then does tasks 4-5, GATE 2, and report/phase-close. The phase number, worktree, branch, and brief stay as one."><style>
+svg { font-family: -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", system-ui, sans-serif; color: #93A0AC; }
+.lane-h { font-size: 13px; font-weight: 700; fill: #E5EAEF; letter-spacing: 0.02em; }
+.lane-g { stroke: currentColor; stroke-dasharray: 3 6; opacity: 0.28; }
+.bx { fill: #1A212A; stroke: #2D3743; stroke-width: 1.2; }
+.bx-bar { fill: #56C2D4; }
+.bx-t { font-size: 14px; font-weight: 650; fill: #E5EAEF; }
+.bx-s { font-size: 11px; fill: #93A0AC; }
+.gate-bx { fill: #2B2313; stroke: #E0A94E; stroke-width: 1.3; }
+.gate-t { font-size: 14px; font-weight: 700; fill: #E0A94E; }
+.pill { fill: #222B35; stroke: #2D3743; stroke-width: 1; }
+.oc-bx { fill: #1A212A; stroke: #56C2D4; stroke-width: 1.5; }
+.opt-bx { fill: none; stroke: #2D3743; stroke-width: 1.2; stroke-dasharray: 5 4; }
+.fl { stroke: currentColor; stroke-width: 1.4; fill: none; }
+.fl-a { stroke: #56C2D4; stroke-width: 1.4; fill: none; stroke-dasharray: 5 4; }
+.lbl { font-size: 11px; fill: #93A0AC; }
+.lbl-a { font-size: 11px; fill: #56C2D4; font-weight: 600; }
+.note-t { font-size: 11.5px; font-weight: 700; fill: #E5EAEF; }
+.note-l { font-size: 11px; fill: #93A0AC; }
+.mono-t { font-family: ui-monospace, "SF Mono", Consolas, monospace; }
+.chip { fill: #1A212A; stroke: #2D3743; stroke-width: 1; }
+.chip-g { fill: #2B2313; stroke: #E0A94E; stroke-width: 1.2; }
+.chip-h { fill: #16333A; stroke: #56C2D4; stroke-width: 1.2; stroke-dasharray: 4 3; }
+.chip-t { font-size: 11.5px; font-weight: 600; fill: #E5EAEF; }
+.sess-bx { fill: #12171E; stroke: #2D3743; stroke-width: 1.2; }
+.sess-t { font-size: 12px; font-weight: 700; fill: #E5EAEF; }
+.fl-b { stroke: currentColor; stroke-width: 1.2; fill: none; stroke-dasharray: 5 5; opacity: 0.7; }
+</style><rect width="100%" height="100%" fill="#1A212A"/>
+        <defs>
+          <marker id="ah3" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="currentColor"/>
+          </marker>
+        </defs>
+
+        <rect class="opt-bx" x="25" y="45" width="860" height="205" rx="12"/>
+        <text class="note-t" x="45" y="72">PHASE N — number · worktree · branch · brief stay one throughout</text>
+
+        <!-- session 1 -->
+        <rect class="sess-bx" x="45" y="88" width="395" height="140" rx="10"/>
+        <text class="sess-t" x="65" y="112">Session 1 = part N-1</text>
+        <rect class="chip" x="65" y="126" width="130" height="30" rx="7"/>
+        <text class="chip-t" x="130" y="145" text-anchor="middle">interview · brief</text>
+        <rect class="chip-g" x="205" y="126" width="70" height="30" rx="7"/>
+        <text class="chip-t" x="240" y="145" text-anchor="middle">GATE 1</text>
+        <rect class="chip" x="285" y="126" width="64" height="30" rx="7"/>
+        <text class="chip-t" x="317" y="145" text-anchor="middle">task 1</text>
+        <rect class="chip" x="65" y="176" width="64" height="30" rx="7"/>
+        <text class="chip-t" x="97" y="195" text-anchor="middle">task 2</text>
+        <rect class="chip" x="139" y="176" width="64" height="30" rx="7"/>
+        <text class="chip-t" x="171" y="195" text-anchor="middle">task 3</text>
+        <rect class="chip-h" x="213" y="176" width="150" height="30" rx="7"/>
+        <text class="chip-t" x="288" y="195" text-anchor="middle">write HANDOFF.md</text>
+
+        <!-- session switch -->
+        <line class="fl" x1="442" y1="158" x2="477" y2="158" marker-end="url(#ah3)"/>
+        <text class="lbl" x="459" y="147" text-anchor="middle">new session</text>
+
+        <!-- session 2 -->
+        <rect class="sess-bx" x="480" y="88" width="390" height="140" rx="10"/>
+        <text class="sess-t" x="500" y="112">Session 2 = part N-2</text>
+        <rect class="chip-h" x="500" y="126" width="190" height="30" rx="7"/>
+        <text class="chip-t" x="595" y="145" text-anchor="middle">read only HANDOFF · task files</text>
+        <rect class="chip" x="700" y="126" width="64" height="30" rx="7"/>
+        <text class="chip-t" x="732" y="145" text-anchor="middle">task 4</text>
+        <rect class="chip" x="500" y="176" width="64" height="30" rx="7"/>
+        <text class="chip-t" x="532" y="195" text-anchor="middle">task 5</text>
+        <rect class="chip-g" x="574" y="176" width="70" height="30" rx="7"/>
+        <text class="chip-t" x="609" y="195" text-anchor="middle">GATE 2</text>
+        <rect class="chip" x="654" y="176" width="150" height="30" rx="7"/>
+        <text class="chip-t" x="729" y="195" text-anchor="middle">report · phase-close</text>
+
+        <text class="lbl" x="455" y="282" text-anchor="middle">part boundary = session boundary = HANDOFF point — the handoff is planned when the brief is written, not improvised</text>
+      </svg>

@@ -14,7 +14,7 @@
 
 오케스트레이터(claude/codex) → opencode 위임 개발환경을 어떤 머신에든 재현하는 부트스트랩 키트.
 `core/`(하네스 무관: 스크립트·opencode 설정·프로젝트 템플릿) + `adapters/<하네스>/`(스킬·훅·설정) +
-`containers/`(브라우저 CDP·antigravity 프록시) 구조. 기술 스택: bash 3.2 호환 셸 스크립트,
+`containers/browser`(브라우저 CDP·우회 fetch — 서브모듈 insane-cloak) 구조. 기술 스택: bash 3.2 호환 셸 스크립트,
 python3 unittest, jq, docker compose. 서비스 포트 없음(설치 키트).
 이 저장소 자신이 키트의 첫 사용자다(도그푸딩) — `scripts/*`는 `core/scripts/*` 심링크.
 
@@ -33,7 +33,17 @@ bash scripts/hook-selfcheck.sh             # 훅 자가진단 (HOOK_SELFCHECK_PA
 ## 이 저장소의 함정 (반복 금지)
 
 > 실측으로 확인된 함정만 남긴다. 페이즈 중 새 함정이 실측되면 완료 보고 때 여기 append한다.
-> (형식: 무엇을 하면 → 무엇이 죽는지 → 실측 날짜)
+> (형식: 무엇을 하면 → 무엇이 죽는지 → 실측 날짜) — **상세는 `DOCs/PITFALLS.md`**
+
+- **`INSTALL_PARSE_ONLY` 로 메뉴 동작을 검증하지 말 것** — 메뉴 코드가 정의되기 전에 종료되므로
+  기능을 통째로 지워도 통과하는 "항상 참" 테스트가 된다. 메뉴는 `INSTALL_SELFTEST_MENU` 로 검증하고,
+  **새 테스트마다 저장소 밖 사본에서 변이 검증**을 할 것 (2026-08-10 Phase 1 에서 6회 실측).
+- **커밋 메시지에 heredoc·명령치환을 쓰지 말 것** — bash-guard 가 차단한다.
+  트리거 단어가 필요하면 단순 `-m "..."` 여러 개를 쓴다 (2026-08-10 실측 3회).
+- **병렬 위임 중 `git add .`·`git commit -a` 금지** — 워크트리 작업 트리는 공유되므로 다른 task 의
+  미완성 산출물이 함께 커밋된다. 경로를 명시할 것 (2026-08-10).
+- **서브모듈을 init 한 워크트리는 phase-close 가 크래시한다** — `worktree remove` 가 rc=128 거부.
+  병합 확인 후 `git worktree remove --force --force` 수동 제거 → close 재실행 (2026-08-11).
 
 - **`pgrep -f`로 위임 프로세스를 폴링하지 말 것** — 감시 루프 자신의 명령줄이 패턴에 매칭되어
   무한 루프가 된다. `scripts/run-delegation.sh`(launch PID 대기)를 쓸 것.

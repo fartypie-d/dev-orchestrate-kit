@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 360" role="img"
+           aria-label="chrome-cdp container structure. The insane-fetch CLI and HTTP callers hit insane-api at 127.0.0.1:9223; other containers reach insane-api via a network alias; Playwright · Puppeteer attach directly to CloakBrowser CDP at 127.0.0.1:9222. insane-api drives CloakBrowser over container-internal loopback CDP. Both ports are 127.0.0.1-only."><style>
+svg { font-family: -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", system-ui, sans-serif; color: #93A0AC; }
+.lane-h { font-size: 13px; font-weight: 700; fill: #E5EAEF; letter-spacing: 0.02em; }
+.lane-g { stroke: currentColor; stroke-dasharray: 3 6; opacity: 0.28; }
+.bx { fill: #1A212A; stroke: #2D3743; stroke-width: 1.2; }
+.bx-bar { fill: #56C2D4; }
+.bx-t { font-size: 14px; font-weight: 650; fill: #E5EAEF; }
+.bx-s { font-size: 11px; fill: #93A0AC; }
+.gate-bx { fill: #2B2313; stroke: #E0A94E; stroke-width: 1.3; }
+.gate-t { font-size: 14px; font-weight: 700; fill: #E0A94E; }
+.pill { fill: #222B35; stroke: #2D3743; stroke-width: 1; }
+.oc-bx { fill: #1A212A; stroke: #56C2D4; stroke-width: 1.5; }
+.opt-bx { fill: none; stroke: #2D3743; stroke-width: 1.2; stroke-dasharray: 5 4; }
+.fl { stroke: currentColor; stroke-width: 1.4; fill: none; }
+.fl-a { stroke: #56C2D4; stroke-width: 1.4; fill: none; stroke-dasharray: 5 4; }
+.lbl { font-size: 11px; fill: #93A0AC; }
+.lbl-a { font-size: 11px; fill: #56C2D4; font-weight: 600; }
+.note-t { font-size: 11.5px; font-weight: 700; fill: #E5EAEF; }
+.note-l { font-size: 11px; fill: #93A0AC; }
+.mono-t { font-family: ui-monospace, "SF Mono", Consolas, monospace; }
+.chip { fill: #1A212A; stroke: #2D3743; stroke-width: 1; }
+.chip-g { fill: #2B2313; stroke: #E0A94E; stroke-width: 1.2; }
+.chip-h { fill: #16333A; stroke: #56C2D4; stroke-width: 1.2; stroke-dasharray: 4 3; }
+.chip-t { font-size: 11.5px; font-weight: 600; fill: #E5EAEF; }
+.sess-bx { fill: #12171E; stroke: #2D3743; stroke-width: 1.2; }
+.sess-t { font-size: 12px; font-weight: 700; fill: #E5EAEF; }
+.fl-b { stroke: currentColor; stroke-width: 1.2; fill: none; stroke-dasharray: 5 5; opacity: 0.7; }
+</style><rect width="100%" height="100%" fill="#1A212A"/>
+        <defs>
+          <marker id="ah5" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="currentColor"/>
+          </marker>
+        </defs>
+
+        <!-- container -->
+        <rect class="opt-bx" x="430" y="40" width="440" height="280" rx="12"/>
+        <text class="note-t" x="450" y="66">chrome-cdp container — containers/browser/</text>
+        <text class="note-l" x="450" y="84">start-both.sh supervises — restarts container if either dies</text>
+
+        <rect class="bx" x="460" y="100" width="380" height="58" rx="9"/>
+        <rect class="bx-bar" x="460" y="114" width="3" height="30"/>
+        <text class="bx-t mono-t" x="650" y="124" text-anchor="middle">insane-api — :9223</text>
+        <text class="bx-s" x="650" y="143" text-anchor="middle">bypass escalation pipeline · SSRF guard</text>
+
+        <line class="fl" x1="650" y1="160" x2="650" y2="217" marker-end="url(#ah5)"/>
+        <text class="lbl" x="662" y="192" text-anchor="start">CDP — container-internal loopback</text>
+
+        <rect class="bx" x="460" y="222" width="380" height="58" rx="9"/>
+        <rect class="bx-bar" x="460" y="236" width="3" height="30"/>
+        <text class="bx-t mono-t" x="650" y="246" text-anchor="middle">CloakBrowser Chromium — :9222</text>
+        <text class="bx-s" x="650" y="265" text-anchor="middle">headful (Xvfb) · stealth · fingerprint multiplex</text>
+
+        <text class="lbl" x="650" y="304" text-anchor="middle">both ports 127.0.0.1-only — no external/tailnet exposure · noVNC overlay is view-only</text>
+
+        <!-- callers -->
+        <rect class="pill" x="60" y="80" width="240" height="52" rx="12"/>
+        <text class="bx-t" x="180" y="102" text-anchor="middle" style="font-size:13px">insane-fetch CLI · HTTP callers</text>
+        <text class="bx-s mono-t" x="180" y="120" text-anchor="middle">127.0.0.1:9223 /fetch</text>
+        <line class="fl" x1="302" y1="106" x2="456" y2="106" marker-end="url(#ah5)"/>
+
+        <rect class="pill" x="60" y="160" width="240" height="52" rx="12"/>
+        <text class="bx-t" x="180" y="182" text-anchor="middle" style="font-size:13px">other containers</text>
+        <text class="bx-s mono-t" x="180" y="200" text-anchor="middle">chrome-cdp:9223 (network alias)</text>
+        <polyline class="fl" points="302,186 380,186 380,140 456,140" marker-end="url(#ah5)"/>
+
+        <rect class="pill" x="60" y="240" width="240" height="52" rx="12"/>
+        <text class="bx-t" x="180" y="262" text-anchor="middle" style="font-size:13px">Playwright · Puppeteer</text>
+        <text class="bx-s mono-t" x="180" y="280" text-anchor="middle">127.0.0.1:9222?fingerprint=N</text>
+        <line class="fl" x1="302" y1="266" x2="456" y2="266" marker-end="url(#ah5)"/>
+      </svg>

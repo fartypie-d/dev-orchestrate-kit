@@ -19,13 +19,17 @@ frontmatter 규약 (신규 문서 권장):
     ---
 """
 from __future__ import annotations
+import argparse
+import os
 import re
 import sys
 from datetime import date
 from pathlib import Path
 
-DOCS = Path(__file__).resolve().parent.parent / "DOCs"
-INDEX = DOCS / "INDEX.md"
+
+def default_docs_dir() -> Path:
+    """실행 경로의 심링크를 보존해 저장소 DOCs 경로를 계산한다."""
+    return Path(os.path.abspath(__file__)).parent.parent / "DOCs"
 
 # 스캔 대상 (phase 문서만 — TODO/CTO_BRIEFING/specs/images/TEMPLATES 제외).
 # reviews/ 디렉터리의 모든 .md는 패턴과 무관하게 포함한다(아래 main 참조).
@@ -58,10 +62,10 @@ def h1(text: str) -> str:
     return m.group(1).strip() if m else ""
 
 
-def extract(path: Path) -> dict[str, str]:
+def extract(path: Path, docs_dir: Path) -> dict[str, str]:
     text = path.read_text(encoding="utf-8", errors="replace")
     fm = parse_frontmatter(text)
-    rel = path.relative_to(DOCS)
+    rel = path.relative_to(docs_dir)
     name = path.name
     in_reviews = "reviews" in rel.parts
     archived = "archive" in rel.parts
@@ -118,18 +122,28 @@ def extract(path: Path) -> dict[str, str]:
     }
 
 
-def main() -> int:
+def main(argv=None) -> int:
+    parser = argparse.ArgumentParser(prog="docs-index")
+    parser.add_argument(
+        "--docs-dir",
+        type=Path,
+        default=default_docs_dir(),
+        help="스캔하고 INDEX.md를 생성할 문서 디렉터리",
+    )
+    args = parser.parse_args(argv)
+    docs_dir = args.docs_dir
+    index = docs_dir / "INDEX.md"
     rows = []
-    for p in DOCS.rglob("*.md"):
+    for p in docs_dir.rglob("*.md"):
         if p.name == "INDEX.md":
             continue
-        parts = p.relative_to(DOCS).parts
+        parts = p.relative_to(docs_dir).parts
         if any(x in parts for x in ("TEMPLATES", "specs", "images")):
             continue
         in_reviews = "reviews" in parts
         if not (in_reviews or any(pat.match(p.name) for pat in INCLUDE_PATTERNS)):
             continue
-        rows.append(extract(p))
+        rows.append(extract(p, docs_dir))
 
     def sort_key(r: dict[str, str]):
         try:
@@ -155,7 +169,7 @@ def main() -> int:
             f"{r['status']} | {r['summary']} | [{Path(r['doc']).name}]({r['doc']}) | {r['commits']} |"
         )
     lines.append("")
-    INDEX.write_text("\n".join(lines), encoding="utf-8")
+    index.write_text("\n".join(lines), encoding="utf-8")
     print(f"INDEX.md 갱신: {len(rows)}개 문서")
     return 0
 

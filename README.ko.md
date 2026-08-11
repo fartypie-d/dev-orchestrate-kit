@@ -40,7 +40,7 @@
   | OpenAI (GPT) | ChatGPT 구독 | `opencode auth login -p openai` (OAuth) |
   | xAI (Grok) | 구독 | `opencode auth login -p xai` (OAuth) |
   | Qwen / DeepSeek | API 키 | `~/.config/opencode/secrets.env`의 `QWEN_API_KEY` |
-  | Gemini (antigravity 프록시) | API 키 | `ANTIGRAVITY_API_KEY` + `containers/antigravity` |
+  | Gemini (antigravity 프록시) | API 키 + 프록시 | `ANTIGRAVITY_API_KEY` — 프록시(:8045)는 번들하지 않는다. 직접 준비: [PORTING](docs/PORTING.md) |
 
   감독용 OpenAI 구독은 위임 프로바이더로도 겸용된다 — 구독 하나, 역할 둘.
 - **도구** — bash 3.2+, git, python3, jq, [opencode](https://opencode.ai) CLI.
@@ -117,7 +117,7 @@ flowchart LR
 | `core/project-template/` | 로스터·에이전트 규격·문서 체계 (하네스 무관) |
 | `adapters/claude/` | 전역 스킬 + 프로젝트 훅·settings·CLAUDE.md·요금제 프로파일 |
 | `adapters/codex/` | `~/.codex/prompts` + `.codex/` 프로젝트 계층·`codex-review.sh` |
-| `containers/` | 브라우저(스텔스 CDP + 우회 API)·antigravity 프록시 |
+| `containers/browser/` | 스텔스 CDP + 우회 fetch API (git submodule → [insane-cloak](https://github.com/fartypie-d/insane-cloak)) |
 | `components/usage-dashboard` | 세션 사용량 관측 대시보드 (git submodule) |
 
 ## usage-dashboard — 세션 관측 대시보드 (서브모듈)
@@ -138,11 +138,13 @@ docker compose build && docker compose up -d
 
 ## 독립 모듈 — 브라우저 컨테이너
 
-오케스트레이션 워크플로우를 쓰지 않아도 `containers/browser/` 하나만 독립적으로 쓸 수 있다.
-헤드리스 개발 서버에서 브라우저가 필요한데 X 디스플레이·GPU·per-user Chrome 설치가 없는 환경을
-위한 것이다:
+브라우저 컨테이너는 별도 저장소 [insane-cloak](https://github.com/fartypie-d/insane-cloak) 로
+분리되어 있으며 `containers/browser` 서브모듈로 참조한다. 오케스트레이션 워크플로우를 쓰지 않아도
+이 컨테이너 하나만 독립적으로 쓸 수 있다 — 헤드리스 개발 서버에서 브라우저가 필요한데 X 디스플레이·
+GPU·per-user Chrome 설치가 없는 환경을 위한 것이다:
 
 ```bash
+git submodule update --init containers/browser   # 서브모듈 처음 받을 때 1회
 cd containers/browser
 bash insane-api/vendor/sync-vendor.sh    # 업스트림 MIT 엔진을 핀 커밋에서 가져온다
 docker compose up -d
@@ -151,6 +153,25 @@ docker compose up -d
 
 화면 확인이 필요하면 noVNC 오버레이를 얹는다 (`docker-compose.novnc.yml`, 127.0.0.1·보기 전용 고정).
 자세한 내용·보안 주의는 `containers/browser/README.md` 참조.
+
+### MCP 로 쓰기
+
+`chrome-devtools-mcp` 를 컨테이너의 CDP(`:9222`)에 붙이면 Claude Code 같은 하네스가 브라우저를
+직접 조작한다. MCP 서버가 자기 브라우저를 새로 띄우지 않으므로 스텔스 지문과 세션이 유지된다.
+
+```json
+{
+  "mcpServers": {
+    "chrome-devtools": {
+      "command": "npx",
+      "args": ["-y", "chrome-devtools-mcp@latest", "--browserUrl", "http://127.0.0.1:9222"]
+    }
+  }
+}
+```
+
+호출자별로 격리하려면 `--browserUrl` 에 `?fingerprint=<이름>` 을 붙인다.
+상세(보안 주의 포함)는 `containers/browser/README.md` 의 MCP 절을 참조한다.
 
 ## 요금제별 토큰 프로파일
 
@@ -164,8 +185,9 @@ frontmatter 의 `model:` 로만 한다 (`CLAUDE_CODE_SUBAGENT_MODEL` 은 리뷰�
 - **이 저장소가 단일 소스다.** 어느 머신에서든 오케스트레이션 자산을 개선하면:
   키트에 반영 → push → 다른 머신에서 pull 후 `./install.sh` 재실행(멱등).
 - `~/.claude/skills/orchestrate` 를 직접 고치고 끝내지 말 것 — 다음 install 에서 되돌아간다.
-- **예외 — 컨테이너는 개발 호스트가 원본이다.** 호스트 컨테이너를 먼저 고치고
-  `containers/browser/` 에 반영한다.
+- **예외 — 브라우저 컨테이너는 별도 저장소다.** 개발 호스트의 컨테이너를 먼저 고치고
+  [insane-cloak](https://github.com/fartypie-d/insane-cloak) 저장소에 반영한 뒤,
+  키트는 `containers/browser` 서브모듈 포인터만 갱신한다.
 - **예외 — model-policy 는 생성물이다.** 원본은 `core/opencode/provider-models.json` 매핑표다.
 - 포함하지 않는 것: 비밀(secrets.env), 구독 OAuth(머신별 로그인), 메모리·프로젝트 데이터.
 

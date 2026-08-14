@@ -1,0 +1,1 @@
+../core/scripts/opencode-serve-ctl.sh

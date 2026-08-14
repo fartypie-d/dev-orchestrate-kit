@@ -87,4 +87,5 @@ conventional commits (`feat:`/`fix:`/...). scope: `install`·`stamp`·`policy`·
   주입 플래그(`--agents-dir`·`--settings`·`--policy`)나 임시 디렉터리를 쓴다.
 - `core/project-template/`·`docs/plans/` 에는 `__PROJECT__` 플레이스홀더가 정당하게 존재한다 —
   일괄 치환 금지 (2026-08-08 도그푸딩에서 실제 클로버 사고).
-- 라이브 컨테이너(`/opt/chrome-cdp` 등) 조작 금지 — `containers/` 번들만 수정한다.
+- 자기 소유가 아니거나 이미 운영 중인 라이브 CDP 컨테이너·세션은 조작 금지한다. 이 킷의
+  `containers/browser` 번들을 본인이 직접 띄운 경우는 해당하지 않는다.

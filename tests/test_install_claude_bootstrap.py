@@ -7,43 +7,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from _install_helpers import KIT, RUN_TIMEOUT, dry_run
-
-
-def run_install_with_fake_tools(*args, fake_tools, pseudo_tty=False,
-                                minimal_path=False, **overrides):
-    """실제 홈·네트워크 없이 설치 실패 경로를 끝까지 실행한다."""
-    with tempfile.TemporaryDirectory() as home:
-        bin_dir = Path(home) / "bin"
-        bin_dir.mkdir()
-        for name, content in fake_tools.items():
-            path = bin_dir / name
-            path.write_text(content)
-            path.chmod(path.stat().st_mode | stat.S_IXUSR)
-        if minimal_path:
-            for name in (
-                "basename", "bash", "cat", "chmod", "cmp", "cp", "date", "dirname",
-                "grep", "id", "mkdir", "mktemp", "mv", "rm", "sed", "tar", "uname",
-            ):
-                path = bin_dir / name
-                if not path.exists():
-                    path.write_text(f"#!/bin/bash\nexec /bin/{name} \"$@\"\n")
-                    path.chmod(path.stat().st_mode | stat.S_IXUSR)
-        env = {
-            **os.environ,
-            "HOME": home,
-            # 사용자 셸의 claude/npm을 보지 않되 표준 도구는 사용할 수 있게 한다.
-            "PATH": str(bin_dir) if minimal_path else str(bin_dir) + ":/usr/bin:/bin",
-        }
-        env.update(overrides)
-        command = ["/bin/bash", str(KIT / "install.sh"), *args]
-        if pseudo_tty:
-            command = ["/usr/bin/script", "-q", "-c", " ".join(command), "/dev/null"]
-        return subprocess.run(
-            command, capture_output=True, text=True,
-            input="y\n\n" if pseudo_tty else "\n", env=env,
-            timeout=RUN_TIMEOUT,
-        )
+from _install_helpers import KIT, RUN_TIMEOUT, dry_run, run_install_with_fake_tools
 
 
 class InstallClaudeBootstrapTest(unittest.TestCase):
@@ -111,6 +75,9 @@ class InstallClaudeBootstrapTest(unittest.TestCase):
             pseudo_tty=True,
             minimal_path=True,
             HOME=home,
+            INSTALL_PLAIN_MENU="1",
+            # script(1) pty에서는 마법사 프롬프트가 블록되므로 유휴 상한을 주입한다.
+            INSTALL_MENU_IDLE_LIMIT="2",
             )
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("기존 유저공간 Node 확인됨", result.stdout)

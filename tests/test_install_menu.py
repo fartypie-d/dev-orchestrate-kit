@@ -1,7 +1,12 @@
 """install.sh 번호 선택 메뉴의 비대화형 안전성과 입력 정규화 테스트."""
+import os
+import shlex
+import subprocess
 import unittest
 
-from _install_helpers import KIT, parse_only, run_install, selftest_menu
+from _install_helpers import (
+    KIT, RUN_TIMEOUT, parse_only, run_install, run_install_with_fake_tools, selftest_menu,
+)
 
 INSTALL = KIT / "install.sh"
 
@@ -65,6 +70,31 @@ class InstallMenuTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("SELFTEST INTERACTIVE=0", result.stdout)
 
+    def test_tui_selftest_runs_without_detected_harness_cli(self):
+        """TUI 셀프테스트 예외는 claude·codex 없는 PATH에서도 실제로 실행된다."""
+        result = run_install_with_fake_tools(
+            fake_tools={"tr": "#!/bin/bash\nexec /usr/bin/tr \"$@\"\n"},
+            pseudo_tty=True,
+            minimal_path=True,
+            stdin="\n",
+            INSTALL_SELFTEST_TUI="1",
+            INSTALL_TUI_IDLE_LIMIT="1",
+            TERM="xterm",
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("SELFTEST TUI ONE=skip", result.stdout)
+
+    def test_wizard_selftest_runs_without_detected_harness_cli(self):
+        """마법사 셀프테스트 예외는 claude·codex 자동감지 전에 실행된다."""
+        result = run_install_with_fake_tools(
+            fake_tools={"tr": "#!/bin/bash\nexec /usr/bin/tr \"$@\"\n"},
+            minimal_path=True,
+            INSTALL_SELFTEST_WIZARD="1",
+            INSTALL_SELFTEST_INPUTS="1||3||4|1",
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("SELFTEST WIZARD HARNESSES=claude", result.stdout)
+
     def test_choice_input_normalization(self):
         result = selftest_menu()
         self.assertEqual(result.returncode, 0, result.stderr)
@@ -73,6 +103,90 @@ class InstallMenuTest(unittest.TestCase):
         self.assertEqual(choices[5], "SELFTEST CHOICE=qwen")
         self.assertEqual(choices[8], "SELFTEST PLAN=max5")
         self.assertEqual(choices[9], "SELFTEST PLAN=skip")
+
+    def test_selftest_number_input_still_works(self):
+        """자가검증에 주입한 번호 입력은 기존 선택값과 출력을 유지한다."""
+        result = selftest_menu()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        choices = result.stdout.splitlines()
+        self.assertEqual(choices[1:3], ["SELFTEST CHOICE=qwen,xai"] * 2)
+        self.assertEqual(choices[8], "SELFTEST PLAN=max5")
+
+    def test_key_parser_converts_terminal_bytes_to_actions(self):
+        """키 파서 훅은 터미널 바이트를 메뉴 동작 토큰으로만 출력한다."""
+        cases = {
+            "\x1b[A": "up\n",
+            "\x1b[B": "down\n",
+            " ": "toggle\n",
+            "\r": "enter\n",
+            "\x1b": "back\n",
+        }
+        for key_bytes, expected in cases.items():
+            with self.subTest(key_bytes=repr(key_bytes)):
+                result = run_install(
+                    env={
+                        "INSTALL_SELFTEST_KEYPARSE": "1",
+                    },
+                    stdin=key_bytes,
+                )
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertEqual(result.stdout, expected)
+                self.assertEqual(result.stderr, "")
+
+    def test_tui_idle_limit_falls_back_after_pseudo_tty_eof(self):
+        """PTY EOF 뒤 대기는 지정 유휴 상한으로 기본값을 확정한다."""
+        result = subprocess.run(
+            [
+                "/usr/bin/script", "-q", "-c",
+                "env INSTALL_SELFTEST_TUI=1 INSTALL_TUI_IDLE_LIMIT=2 TERM=xterm /bin/bash " + str(INSTALL),
+                "/dev/null",
+            ],
+            capture_output=True,
+            text=True,
+            input="\n",
+            env=os.environ.copy(),
+            timeout=RUN_TIMEOUT,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("SELFTEST TUI ONE=skip", result.stdout)
+        self.assertIn("SELFTEST TUI MANY=qwen", result.stdout)
+
+    def test_tui_delayed_arrow_key_preserves_moved_selection(self):
+        """생각하느라 지연된 방향키도 첫 메뉴의 선택으로 확정한다."""
+        child_command = (
+            "{ sleep 2; printf '\\033[B\\r'; } | /usr/bin/script -q -c "
+            + shlex.quote(
+                "env INSTALL_SELFTEST_TUI=1 INSTALL_TUI_IDLE_LIMIT=4 TERM=xterm "
+                "/bin/bash " + str(INSTALL)
+            )
+            + " /dev/null"
+        )
+        result = subprocess.run(
+            ["/bin/bash", "-c", child_command],
+            capture_output=True,
+            text=True,
+            env=os.environ.copy(),
+            timeout=RUN_TIMEOUT,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("SELFTEST TUI ONE=pro", result.stdout)
+
+    def test_tui_idle_limit_falls_back_with_notice(self):
+        """지정한 유휴 상한 뒤에는 안내와 함께 기본값으로 끝낸다."""
+        result = subprocess.run(
+            [
+                "/usr/bin/script", "-q", "-c",
+                "env INSTALL_SELFTEST_TUI=1 INSTALL_TUI_IDLE_LIMIT=2 TERM=xterm /bin/bash " + str(INSTALL),
+                "/dev/null",
+            ],
+            capture_output=True,
+            text=True,
+            env=os.environ.copy(),
+            timeout=RUN_TIMEOUT,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("SELFTEST TUI ONE=skip", result.stdout)
+        self.assertIn('2초 동안 입력이 없어 기본값("skip")으로 진행한다.', result.stdout)
 
     def test_three_invalid_attempts_falls_back_with_notice(self):
         result = selftest_menu()

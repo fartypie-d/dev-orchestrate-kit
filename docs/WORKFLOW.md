@@ -41,7 +41,7 @@ harness follows the same skeleton, with only the review step swapped for `codex-
    eyeballing `ls DOCs/` can't see briefs in other worktrees and creates duplicates (2
    observed incidents). See §03.
 6. **Delegation** — the prompt is saved to a `.orchestrate/task<N>.prompt` file and
-   `run-delegation.sh` is run in the background (global lock, model fallback, watchdog
+   `run-delegation.sh` is run in the background (locking, model fallback, watchdog
    built in). trivial·small are judged directly by main; standard·large are handled by the
    task-orchestrator subagent, which owns log check → verification → local commit. See §04.
 7. **Domain review** — an ECC reviewer subagent (Claude) or `codex-review.sh` (Codex)
@@ -97,9 +97,11 @@ where parallel sessions are common.
   only that output. Don't switch branches inside a worktree — if you need a different branch,
   claim a new one.
 - **A worktree isolates only files.** The opencode session DB, venv, and ports are shared.
-  So delegation is serialized by a global lock (`opencode.lock`) regardless of session or
-  project — concurrent delegation is not a failure but a **wait** (up to 30 min, LOCK_WAIT
-  log).
+  So delegation is serialized by locks — with an `opencode serve` attach available, a
+  **per-project lock** (serial only within the same project and its worktrees, parallel
+  across projects); without a serve environment, the standalone fallback serializes
+  everything under a **global lock** (`opencode.lock`). Concurrent delegation is not a
+  failure but a **wait** (up to 30 min, `LOCK_WAIT` log).
 - **Briefs are size-controlled.** `DOCs/PHASE<N>_<slug>.md`. With 3+ tasks it is split into
   an index (10KB cap) + `.tasks/task<N>.md` — a single giant brief has been observed killing
   a session with the compact-then-reread loop. When the index exceeds the cap, that's a
@@ -130,7 +132,8 @@ log conventions all disappear.
   <img alt="Delegation sequence for standard·large tasks" src="assets/fig-delegation-en.svg">
 </picture>
 
-`run-delegation.sh` built-ins: preflight · global flock (delegation serialization) · API-key
+`run-delegation.sh` built-ins: preflight · per-project flock under serve attach / global
+flock on standalone fallback (delegation serialization) · API-key
 self-injection · init watchdog · PID completion wait · model fallback chain · `MODEL_USED=`
 live output. The exit code is the judgment criterion. Per-task model selection is passed as
 the 4th argument from the brief's `model:` field — `heavy` or `provider/model` (falls back to

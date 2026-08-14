@@ -10,6 +10,22 @@
 - 에이전트 로스터·검증 명령: **`.claude/orchestrate.md`** (에이전트 정의는 `.opencode/agent/*.md`)
 - 소스 코드는 직접 수정하지 않는다 — 위임한다. 직접 수정 가능: `DOCs/`, `.claude/`.
 
+## 세션 운영
+
+- **프로젝트 확인 가드**: 요청이 이 프로젝트(dev-orchestrate-kit)와 무관해 보이면 — 다른 프로젝트의
+  파일을 다뤄야 하면 — 진행하지 말고 AskUserQuestion으로 먼저 확인한다. 원격 클라이언트가 직전에
+  쓰던 다른 프로젝트 세션에 붙은 채로 요청이 들어와 엉뚱한 프로젝트에서 페이즈가 수행된 실측
+  사례가 있다 (2026-07-27).
+- **페이즈 경계 = 세션 경계**: 페이즈 완료(지시서 아카이브 + 리뷰 문서 커밋) 후에는 세션을 정리하고,
+  다음 페이즈는 **새 세션**으로 시작하도록 안내한다. 상태는 `DOCs/PHASE*.md`와 `DOCs/INDEX.md`에
+  외부화되어 있으므로 새 세션 재시동 비용이 낮다. auto-compaction이 반복되는 장수 세션은 요약
+  품질을 통제할 수 없고 비용도 크다 — 컴팩션에 의존하지 말고 명시적으로 끊을 것.
+- **병렬 세션**: 같은 프로젝트에서 두 번째 세션이 동시에 작업해야 하면 메인 체크아웃이 아니라
+  `.claude/worktrees/phase<N>-<slug>` 워크트리에서 진행한다 (전역 /orchestrate 스킬 "병렬 세션" 절).
+  워크트리가 격리하는 건 파일뿐 — opencode 위임은 `scripts/run-delegation.sh`의 락이 직렬화한다
+  (v3: serve attach 시 **프로젝트별 락** — 같은 프로젝트끼리만 직렬, 프로젝트 간 병렬.
+  standalone 폴백 시에만 전역 락).
+
 ## 프로젝트 개요
 
 오케스트레이터(claude/codex) → opencode 위임 개발환경을 어떤 머신에든 재현하는 부트스트랩 키트.
@@ -44,6 +60,10 @@ bash scripts/hook-selfcheck.sh             # 훅 자가진단 (HOOK_SELFCHECK_PA
   미완성 산출물이 함께 커밋된다. 경로를 명시할 것 (2026-08-10).
 - **서브모듈을 init 한 워크트리는 phase-close 가 크래시한다** — `worktree remove` 가 rc=128 거부.
   병합 확인 후 `git worktree remove --force --force` 수동 제거 → close 재실행 (2026-08-11).
+- **위임 에이전트에게 `/tmp` 에 쓰라고 하지 말 것** — `external_directory` 자동 거부로 런이
+  보고 없이 종료된다. 변이·스크래치 사본은 `.orchestrate/mut<task>/`(gitignore)에 (2026-08-11).
+- **RED 단계(`<N>a`) task 에 변이 검증을 요구하지 말 것** — 변이시킬 구현이 아직 없어
+  항상 참인 검증이 된다. 변이 검증은 구현 task(`<N>b`)의 완료 조건에 (2026-08-11).
 
 - **`pgrep -f`로 위임 프로세스를 폴링하지 말 것** — 감시 루프 자신의 명령줄이 패턴에 매칭되어
   무한 루프가 된다. `scripts/run-delegation.sh`(launch PID 대기)를 쓸 것.
@@ -56,6 +76,16 @@ bash scripts/hook-selfcheck.sh             # 훅 자가진단 (HOOK_SELFCHECK_PA
   항상 `core/scripts/` 를 고칠 것.
 - **설치 스크립트 테스트가 실제 홈을 오염시킬 수 있다** — `apply-plan-profile.sh` 는 기본값이
   `~/.claude/agents` 다. 테스트에서는 반드시 `--agents-dir`·`--settings` 주입 플래그를 쓸 것.
+- **락 없이 `opencode run` 을 동시에 띄우면 토큰 0개·exit 0 으로 침묵사한다** — 위임은 반드시
+  `scripts/run-delegation.sh` 경유 (PITFALLS 9).
+- **없는 에이전트 이름은 실패가 아니라 기본 에이전트 조용 폴백(rc=0)이다** — 래퍼가 exit 7 로 끊는다 (PITFALLS 10).
+- **위임 스크립트를 고치는 페이즈에서는 그 스크립트로 위임하지 말 것** — 안정본 사본을 얼려 쓴다 (PITFALLS 13).
+- **회귀 테스트는 오케스트레이터가 작성·동결하고 위임의 `tests/` 수정을 금지한다** — 위임에 맡기면
+  단정이 약화된다(같은 계열 7회 실측, PITFALLS 14).
+- **변이 검증은 `.orchestrate/mutation/` 에 저장소 전체를 복사해서** — `/tmp` 는 거부되고,
+  스크립트만 복사하면 테스트가 원본을 참조해 변이가 무효다 (PITFALLS 15).
+- **워크트리 위임 프롬프트에는 상대 경로만 쓸 것** — 부모 체크아웃은 외부 디렉터리로 거부되고
+  에이전트가 파일을 하나도 고치지 않은 채 `DONE` 으로 끝난다. 검수는 `git status` 부터 (PITFALLS 16).
 - **`__PROJECT__` 를 저장소 전역에서 일괄 치환하지 말 것** — `core/project-template/`·`docs/plans/`
   에는 플레이스홀더가 정당하게 존재한다. stamp 치환 범위를 넓히면 템플릿 원본이 클로버된다
   (2026-08-08 도그푸딩 실측 사고 — lib/stamp.sh 가 복사분만 치환하는 이유).
@@ -63,5 +93,6 @@ bash scripts/hook-selfcheck.sh             # 훅 자가진단 (HOOK_SELFCHECK_PA
 ## 주의
 
 - `~/.config/opencode/secrets.env`·`.env` 류는 커밋·외부 전송 금지. 키 이름만 로그에 남긴다.
-- 라이브 인프라 조작 금지: `/opt/chrome-cdp` 컨테이너(다른 사용자의 CDP 세션이 살아 있다),
-  실제 `~/.claude`·`~/.config` (테스트는 임시 디렉터리로).
+- 자기 소유가 아니거나 이미 운영 중인 라이브 CDP 컨테이너·세션은 조작 금지. 이 킷의
+  `containers/browser` 번들을 본인이 직접 띄운 경우는 해당하지 않는다.
+- 실제 `~/.claude`·`~/.config` 를 테스트에서 건드리지 말 것 (테스트는 임시 디렉터리로).

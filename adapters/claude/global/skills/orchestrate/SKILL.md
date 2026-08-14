@@ -83,9 +83,14 @@ ECC에 없는 도메인이면 새 프로젝트 리뷰어를 만든다. 프로젝
    claim한다 (166 워크트리 디렉터리명·브랜치 불일치 실측). 워크트리가 격리하는 것은
    **파일뿐** — opencode 전역 세션 DB·venv·포트는 공유다. 마감은 `bash scripts/phase-close.sh <N>`.
 2. **위임 직렬화** — opencode 위임은 반드시 `scripts/run-delegation.sh` 경유.
-   전역 락(`~/.local/state/orchestrate/opencode.lock`)이 세션·프로젝트를 불문하고 위임을
-   직렬화한다 — 동시 위임은 실패가 아니라 **대기**(최대 30분, LOCK_WAIT 로그)가 된다.
-   LOCK_TIMEOUT이 나면 침묵 대기하지 말고 사용자에게 보고한다.
+   `~/.config/opencode/serve.env`가 있고 serve attach가 가능하면 프로젝트별 락을 쓴다.
+   프로젝트가 다르면 병렬로 실행되고, 같은 프로젝트(워크트리 포함)는 직렬 대기
+   (`LOCK_WAIT(project)`, 최대 30분)가 된다. serve 환경이 없거나 기동에 실패하면
+   standalone 폴백으로 전역 락을 써 전체를 직렬화한다(`SERVE_FALLBACK`, `LOCK_WAIT`).
+   단독 병렬은 업스트림이 고칠 계획 없음으로 확정한 busy_timeout=0 → SQLITE_BUSY 결함
+   (anomalyco/opencode#21215 · #15188)으로 토큰 0개·exit 0 침묵사가 나므로 금지하며,
+   병렬은 serve 경유만 허용한다. 호출 cwd는 저장소 루트여야 한다(스크립트 내부 `cd` 없음;
+   프로젝트 락 이름과 `--dir`이 호출 cwd 기준). LOCK_TIMEOUT이 나면 침묵 대기하지 말고 보고한다.
 3. **지시서 분리** — 지시서는 `DOCs/PHASE<번호>_<slug>.md` (5단계). `CURRENT_TASK.md`는
    docs-index가 싱글턴으로 특별 취급하므로 동시 페이즈가 하나뿐일 때만 쓴다.
    페이즈 번호는 `phase-claim.sh` 가 발급한 것만 쓴다 — `ls DOCs/` 육안 확인은 다른
@@ -404,6 +409,8 @@ task당 3~5만 토큰의 위임 출력·로그·왕복이 메인 컨텍스트에
 
 ```bash
 mkdir -p .orchestrate
+install -m 600 /dev/null .orchestrate/task<N>.prompt
+# 경로가 재사용되면 umask 만으로는 기존 파일 권한이 남는다.
 cat > .orchestrate/task<N>.prompt <<'PROMPT'
 <위임 프롬프트>
 PROMPT
@@ -416,16 +423,18 @@ bash scripts/run-delegation.sh <에이전트> .orchestrate/task<N>.prompt .orche
 ```
 
 4번째 인자는 지시서 task의 `모델:` 필드 그대로 (생략=default, `heavy`, `provider/model`).
-스크립트에 프리플라이트·전역 flock(병렬 세션 직렬화)·API 키 자가 주입·init 워치독·PID 완료 대기·
+스크립트에 프리플라이트·serve attach 프로젝트별/standalone 전역 flock·API 키 자가 주입·init 워치독·PID 완료 대기·
 **모델 폴백 체인**(4단계 참조)이 전부 내장되어 있다. exit 코드로 판정한다:
 
 | exit | 의미 | 대응 |
 |---|---|---|
 | 0 | 정상 완료 (`DONE` + `MODEL_USED=` + 로그 tail 출력) | 7단계 검수로. `FALLBACK_HISTORY`가 있으면 완료 보고에 명시 |
 | 2 | `STALLED_AT_INIT` — init 단계 세션 DB 경합 (산출물 없음, kill 안전) | 잔여 opencode 정리 후 재위임 |
-| 3 | `PREFLIGHT_UNMANAGED` — 락 없이 도는 비관리 opencode 프로세스 | 프로세스 확인·정리 후 재시도 |
-| 4 | `LOCK_TIMEOUT` — 30분 내 락 획득 실패 | 침묵 대기 금지 — 사용자에게 보고 |
+| 3 | `PREFLIGHT_UNMANAGED` — **standalone 폴백 경로에서만** 락 없이 도는 비관리 opencode 프로세스 | 프로세스 확인·정리 후 재시도 |
+| 4 | `LOCK_TIMEOUT` — 30분 내 락 획득 실패. 상태 디렉터리 또는 로그 파일 생성 실패도 같은 exit 4 | 침묵 대기 금지 — 사용자에게 보고 |
 | 5 | `MODEL_EXHAUSTED` — 체인 전 모델 실패 (전원 한도/장애) | 침묵 재시도 금지 — 사용자에게 보고 (한도 갱신 대기 or 정책 파일 조정) |
+| 6 | 고아 세션 가능성 — 클라이언트를 정리했으나 서버 세션 abort를 확인하지 못함 | `bash scripts/opencode-serve-ctl.sh sessions`로 확인 |
+| 7 | `AGENT_NOT_FOUND` — 없는 에이전트가 기본 에이전트로 조용히 폴백(rc=0)하는 것을 래퍼가 감지 | 로스터에서 에이전트명 확인 후 재위임 |
 | 64/66 | 사용법·정책 파일 오류 / 프롬프트 파일 없음 | 호출 수정 |
 
 > 스크립트가 없는 프로젝트(신규)에는 키트의 `core/scripts/run-delegation.sh`를

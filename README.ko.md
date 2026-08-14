@@ -52,10 +52,11 @@
 git clone https://github.com/fartypie-d/dev-orchestrate-kit.git
 cd dev-orchestrate-kit
 
-# 전역 1회 — 하네스·프로바이더는 생략 시 자동 감지/대화형
+# 전역 1회 — $HOME 아래 전역 자산을 설치한다. 하네스·프로바이더는 생략 시 자동 감지/대화형이며,
+# 하네스는 감독(오케스트레이터) 쪽 Claude Code 및/또는 Codex 선택이다. 위임 실행자 opencode는 항상 설치된다.
 ./install.sh --claude --providers=qwen,openai --plan=max20 typescript python
 
-# 프로젝트마다 — 둘 중 하나를 고른다
+# 프로젝트마다 — 둘 중 하나를 골라 킷을 프로젝트 디렉터리에 적용한다
 ./new-project.sh   ~/my-new-project      # 새로 시작하는 프로젝트
 ./adopt-project.sh ~/existing-project    # 이미 작업 중인 프로젝트 (비파괴)
 
@@ -84,6 +85,10 @@ flowchart LR
 - **모델은 중앙 정책** — `~/.config/opencode/model-policy.json` 의 tier 체인을 run-delegation.sh 가
   `-m` 으로 주입하고 한도·무응답 시 자동 폴백한다. 체인은 `gen-policy.sh` 가 생성하고
   `model-doctor.sh` 가 실측 검증한다 (오타 난 모델 ID 가 조용히 폴백만 소모하는 것을 막는다).
+- **병렬 위임은 구조적으로 안전하다** — `opencode serve` 데몬(`opencode-serve-ctl.sh` 로 관리)이
+  있으면 위임이 서버에 attach 되어 **프로젝트별 락**으로 직렬화된다 — 다른 프로젝트는 병렬,
+  같은 프로젝트는 직렬. 서버가 없으면 전역 락의 standalone 모드로 폴백한다 (락 없는 동시
+  `opencode run` 은 세션 DB 경합으로 침묵사하기 때문).
 - **프로젝트 로스터** — `.claude/orchestrate.md` 가 에이전트·리뷰어 매핑·검증 명령의 단일 소스다.
   두 하네스가 이 파일을 공유한다. **로스터 없이 위임 금지.**
 
@@ -98,6 +103,8 @@ flowchart LR
 </picture>
 
 ## 하네스 조합
+
+두 조합 모두 구현 실행자는 opencode이며, 선택하는 것은 감독(오케스트레이터) 하네스다.
 
 | 조합 | 설치 | 리뷰 | 강제 훅 |
 |---|---|---|---|
@@ -210,7 +217,7 @@ python3 -m unittest discover -s tests -v
 | [CloakBrowser](https://github.com/CloakHQ/CloakBrowser) | 스텔스 Chromium (브라우저 컨테이너 베이스) | MIT |
 
 각 프로젝트의 저작권·라이선스 고지는 vendored 트리(`containers/browser/insane-api/vendor/LICENSE`)와
-설치되는 각 저장소에 보존된다. 이 키트 자체는 [MIT](./LICENSE) 로 배포한다.
+설치되는 각 저장소에 보존된다.
 
 ## 라이선스
 

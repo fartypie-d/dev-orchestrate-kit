@@ -130,7 +130,11 @@ run-delegation.sh는 antigravity 모델 시도 전 프록시 생존을 확인하
 - 한도 에러가 항상 429로 오지 않는다 — gemini는 `AI_APICallError: Service Unavailable`.
 - 위임 프롬프트에 프로젝트 밖 절대경로를 "읽어라"고 쓰면 opencode가 `external_directory`로
   차단하고 에이전트가 포기한다. 외부 참조는 오케스트레이터가 읽어 프롬프트에 인라인할 것.
-- opencode 세션 DB는 전역 공유 — 동시 위임은 run-delegation.sh의 전역 락이 직렬화한다.
+- opencode 세션 DB는 전역 공유지만, serve attach가 가능하면(`~/.config/opencode/serve.env` 존재 및 serve 기동 성공)
+  프로젝트별 락을 사용한다. 프로젝트가 다르면 병렬로 실행되고, 같은 프로젝트(워크트리 포함)는 직렬 대기한다
+  (`LOCK_WAIT(project)`). serve 환경이 없거나 기동에 실패하면 standalone 폴백(`SERVE_FALLBACK`)으로
+  전역 락을 사용해 전체를 직렬화한다. 새 머신에서 병렬 실행을 사용하려면 `serve.env`를 만들고
+  `chmod 600`을 적용하며 비밀번호는 영숫자만 사용해야 한다. 없으면 자동 폴백되어 동작하지만 병렬 이득은 없다.
 
 ## Phase 레지스트리 + 재니터 설치 (2026-08-03)
 

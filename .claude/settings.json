@@ -1,4 +1,5 @@
 {
+  "model": "opus",
   "env": {
     "MAX_THINKING_TOKENS": "10000",
     "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "75"
@@ -14,6 +15,8 @@
       "Bash(ls:*)",
       "Bash(opencode run:*)",
       "Bash(bash scripts/run-delegation.sh:*)",
+      "Bash(bash scripts/opencode-serve-ctl.sh status)",
+      "Bash(bash scripts/opencode-serve-ctl.sh sessions)",
       "Bash(bash scripts/hook-selfcheck.sh)",
       "Bash(python3 scripts/session-cost.py:*)",
       "Bash(python3 scripts/docs-index.py)",

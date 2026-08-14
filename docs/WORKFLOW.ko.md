@@ -37,7 +37,7 @@
    출력한다. 번호는 레지스트리가 유일한 소스 — `ls DOCs/` 육안 선택은 다른 워크트리의 지시서가
    안 보여 중복을 만든다(실측 2건). §03 참조.
 6. **위임** — 프롬프트를 `.orchestrate/task<N>.prompt` 파일로 저장하고 `run-delegation.sh`를
-   백그라운드로 실행한다(전역 락·모델 폴백·워치독 내장). trivial·small은 메인이 직접 판정하고,
+   백그라운드로 실행한다(락·모델 폴백·워치독 내장). trivial·small은 메인이 직접 판정하고,
    standard·large는 task-orchestrator 서브에이전트가 로그 확인→검증→로컬 커밋을 전담한다. §04 참조.
 7. **도메인 리뷰** — ECC 리뷰어 서브에이전트(Claude) 또는 `codex-review.sh`(Codex)가 diff를
    검수한다. 반려되면 heavy 티어로 승격해 재위임(동일 task 최대 2회). task마다 6↔7을 반복하고,
@@ -81,9 +81,10 @@
 - **`phase-claim.sh <slug>` — 시작은 원자적으로.** flock으로 번호 발급 + `git worktree add` +
   브랜치 생성을 한 번에 처리하고 `PHASE=/WORKTREE=/BRANCH=`를 출력한다. 이 출력값만 쓴다.
   워크트리 안에서 브랜치를 갈아타지 않는다 — 다른 브랜치가 필요하면 새로 claim한다.
-- **워크트리가 격리하는 것은 파일뿐.** opencode 세션 DB·venv·포트는 공유다. 그래서 위임은 전역
-  락(`opencode.lock`)이 세션·프로젝트 불문 직렬화한다 — 동시 위임은 실패가 아니라 **대기**
-  (최대 30분, LOCK_WAIT 로그)가 된다.
+- **워크트리가 격리하는 것은 파일뿐.** opencode 세션 DB·venv·포트는 공유다. 그래서 위임은 락으로
+  직렬화한다 — `opencode serve` attach가 가능하면 **프로젝트별 락**(같은 프로젝트·워크트리끼리만
+  직렬, 프로젝트 간 병렬), serve 환경이 없으면 standalone 폴백으로 **전역 락**(`opencode.lock`)이
+  전체를 직렬화한다. 동시 위임은 실패가 아니라 **대기**(최대 30분, `LOCK_WAIT` 로그)가 된다.
 - **지시서는 크기가 통제된다.** `DOCs/PHASE<N>_<slug>.md`. task 3개 이상이면 인덱스(10KB 상한) +
   `.tasks/task<N>.md`로 분할한다 — 단일 거대 지시서는 압축 후 재읽기 루프로 세션을 죽인 실측이
   있다. 인덱스가 상한을 넘으면 페이즈를 쪼개라는 신호다.
@@ -110,7 +111,8 @@ task 등급이 실행 구조를 가른다. 어느 쪽이든 opencode 호출은 �
   <img alt="standard·large task 위임 시퀀스 다이어그램" src="assets/fig-delegation.svg">
 </picture>
 
-`run-delegation.sh` 내장: 프리플라이트 · 전역 flock(위임 직렬화) · API 키 자가 주입 · init 워치독 ·
+`run-delegation.sh` 내장: 프리플라이트 · serve attach 시 프로젝트별 flock / standalone 폴백 시
+전역 flock(위임 직렬화) · API 키 자가 주입 · init 워치독 ·
 PID 완료 대기 · 모델 폴백 체인 · `MODEL_USED=` 실측 출력. exit 코드가 판정 기준이다. task별 모델
 지정은 지시서의 `모델:` 필드를 4번째 인자로 전달 — `heavy` 또는 `provider/model`(실패 시 default
 체인 폴백).

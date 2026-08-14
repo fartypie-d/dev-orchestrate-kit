@@ -281,3 +281,35 @@ Error: The user rejected permission to use this specific tool call.
 
 **부수 확인**: exit 0 을 성공으로 믿지 말 것. 위임 완료 후 **실제 diff 를 직접 확인**해야 한다
 (이 사고는 오케스트레이터가 `sed -n` 으로 해당 블록을 열어 보고서야 발견됐다).
+
+## 23. 마법사 메뉴에 항목을 추가하기 전에 기존 테스트의 번호 하드코딩을 grep 할 것 (2026-08-14, Phase 6 실측)
+
+컨테이너 스텝에 dashboard 항목을 browser 와 mcp 사이(2번)에 넣도록 지시서를 썼다가,
+`test_install_mcp_step.py`·`test_install_wizard.py` 의 **번호 하드코딩 8건**("1 2"=browser+mcp,
+"2"=mcp 단독)과 정면 충돌해 순수 회귀 8건이 났다. 지시서 작성 시점에
+`grep -rn 'INSTALL_SELFTEST_INPUTS' tests/` 로 기존 입력 시퀀스를 확인했으면 예방됐다.
+
+**같은 뿌리의 두 번째 결함**: 항목이 늘면 "선택값 조합부"의 암묵 전제도 깨진다 —
+mcp 가드가 `[ -z "$CONTAINERS" ]`(비었는지)로 browser 부재를 추론하고 있었는데, dashboard 가
+CONTAINERS 를 채우면서 mcp+dashboard 조합이 가드를 통과했다(리뷰어 재현). **집합 소속을
+공백 여부로 추론하는 코드는 원소가 추가되는 순간 깨진다** — `case ",$LIST," in *,이름,*)` 로
+직접 검사할 것.
+
+**대응**: 메뉴 항목 추가 task 의 지시서에는 ① 기존 테스트 입력 시퀀스 grep 결과
+② 새 항목 번호가 기존 번호를 밀지 않는 배치(맨 뒤 추가 우선) ③ 선택값을 소비하는
+조합부·가드 전수 목록을 함께 적는다.
+
+## 24. 컨테이너 실기동 테스트는 **해당 서브모듈이 초기화된 체크아웃**을 전제한다 (2026-08-14, Phase 6 실측)
+
+`test_install_container_step`·`test_install_dashboard_container` 의 실기동 경로 테스트는
+fake `git` 을 쓰므로 서브모듈을 실제로 초기화하지 못한다 — compose 파일이 이미 있어야
+docker 분기까지 도달한다. 프레시 클론(서브모듈 미초기화)에서는 install.sh 가 (정상적으로)
+"compose 파일이 없다" 스킵 경로를 타서 테스트가 FAIL 한다. Phase 6 에서 같은 테스트가
+워크트리(위임 에이전트가 서브모듈을 init 해 둠)에서는 통과하고 main 체크아웃에서는 실패해
+발견됐다 — **환경에 따라 결과가 갈리는 테스트는 이 전제 때문이다.**
+
+**대응**: 테스트 돌리기 전 `git submodule update --init containers/browser components/usage-dashboard`.
+부수 효과 주의 — **워크트리 안에서 init 하면 함정 7(phase-close 크래시)이 재발한다.**
+워크트리 페이즈에서 위임 에이전트가 서브모듈을 init 했을 수 있으니 마감 전 `git submodule status` 로
+확인하고, 초기화돼 있으면 `git worktree remove --force --force` 경로로 마감한다.
+

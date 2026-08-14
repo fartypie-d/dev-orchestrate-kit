@@ -86,6 +86,12 @@ bash scripts/hook-selfcheck.sh             # 훅 자가진단 (HOOK_SELFCHECK_PA
   스크립트만 복사하면 테스트가 원본을 참조해 변이가 무효다 (PITFALLS 15).
 - **워크트리 위임 프롬프트에는 상대 경로만 쓸 것** — 부모 체크아웃은 외부 디렉터리로 거부되고
   에이전트가 파일을 하나도 고치지 않은 채 `DONE` 으로 끝난다. 검수는 `git status` 부터 (PITFALLS 16).
+- **마법사 메뉴에 항목을 추가하기 전에 기존 테스트의 번호 하드코딩을 grep 할 것** — 새 항목이
+  기존 번호를 밀면 순수 회귀가 난다(8건 실측). 집합 소속을 `[ -z ]` 로 추론하는 가드도 함께
+  깨진다 — `case ",$LIST," in *,이름,*)` 로 직접 검사 (PITFALLS 23, 2026-08-14).
+- **컨테이너 실기동 테스트는 서브모듈이 초기화된 체크아웃을 전제한다** — 프레시 클론에서는
+  먼저 `git submodule update --init containers/browser components/usage-dashboard`. 단 워크트리
+  안에서 init 하면 phase-close 가 크래시한다(함정 7) — PITFALLS 24 (2026-08-14).
 - **`__PROJECT__` 를 저장소 전역에서 일괄 치환하지 말 것** — `core/project-template/`·`docs/plans/`
   에는 플레이스홀더가 정당하게 존재한다. stamp 치환 범위를 넓히면 템플릿 원본이 클로버된다
   (2026-08-08 도그푸딩 실측 사고 — lib/stamp.sh 가 복사분만 치환하는 이유).

@@ -134,6 +134,21 @@ Claude Code + opencode 세션 사용량을 분석하는 로컬 웹 대시보드
 모델 믹스·비용, 캐시 효율, 위임 체인, 세션 건강도를 보여준다 — 이 키트가 남기는
 `.orchestrate/events.jsonl` 이벤트 로그를 읽어 위임 트리를 재구성한다.
 
+설치 스크립트를 사용하는 방법을 권장한다:
+
+```bash
+./install.sh --containers=dashboard    # 설치 마법사에서 선택해도 된다
+# browser + dashboard: ./install.sh --containers=browser,dashboard
+# http://127.0.0.1:9280 (로컬 전용)
+```
+
+설치 스크립트는 `components/usage-dashboard` 서브모듈을 초기화하고 Docker·Compose·포트를
+확인한다(기본 포트 `9280`, 포트 사전 점검은 `INSTALL_DASH_PORT`로 재정의 가능). 그 후 동의를
+받아 `docker compose up -d`를 실행한다. 컨테이너 기동에 실패해도 설치는 중단되지 않으며, 남은
+수동 단계에 실패한 컨테이너만 재시도하는 명령이 안내된다.
+
+Docker를 나중에 띄우거나 설치 스크립트를 사용하지 않는 경우에는 수동 경로를 사용한다:
+
 ```bash
 git submodule update --init components/usage-dashboard
 cd components/usage-dashboard

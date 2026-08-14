@@ -152,6 +152,22 @@ model mix and cost, cache efficiency, delegation chains, and session health. It 
 `.orchestrate/events.jsonl` event log this kit emits to reconstruct the delegation tree
 without log parsing.
 
+The installer is the recommended setup path:
+
+```bash
+./install.sh --containers=dashboard    # or pick it in the installer wizard
+# For browser + dashboard: ./install.sh --containers=browser,dashboard
+# http://127.0.0.1:9280 (localhost only)
+```
+
+The installer initializes the `components/usage-dashboard` submodule, checks Docker,
+Compose, and the port (default `9280`; set `INSTALL_DASH_PORT` to override the port
+pre-check), then asks for confirmation before running `docker compose up -d`. If the
+container fails to start, installation continues and the remaining manual steps include
+a retry command for the failed container only.
+
+If you want to start Docker later or are not using the installer, use the manual path:
+
 ```bash
 git submodule update --init components/usage-dashboard
 cd components/usage-dashboard

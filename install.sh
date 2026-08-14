@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # dev-orchestrate-kit 전역 설치 (멱등) — macOS / Linux
 #
-# 사용법: ./install.sh [--claude] [--codex] [--containers=browser] \
+# 사용법: ./install.sh [--claude] [--codex] [--containers=browser,dashboard] \
 #                     [--providers=qwen,openai,xai,antigravity] [--plan=<이름>] [ECC 언어 ...]
 #
 # 기존 파일은 .bak-<날짜>로 백업 후 교체한다 (secrets.env는 절대 덮어쓰지 않음).
@@ -12,6 +12,7 @@ ECC_REPO="https://github.com/affaan-m/everything-claude-code.git"
 ECC_DIR="$HOME/everything-claude-code"
 STAMP=$(date +%Y%m%d-%H%M%S)
 CDP_PORT="${INSTALL_CDP_PORT:-9222}"
+DASH_PORT="${INSTALL_DASH_PORT:-9280}"
 . "$KIT_DIR/lib/stamp.sh"
 
 HARNESSES=""
@@ -21,6 +22,7 @@ CONTAINERS_FROM_FLAG=0
 PLAN=""
 AUTH_LOGIN=""
 AUTH_LOGIN_FAILED=""
+CONTAINER_START_FAILED=""
 AUTH_LOGIN_ARGV=()
 MCP_REGISTER=0
 MCP_ADD_ARGV=()
@@ -1003,9 +1005,9 @@ run_install_wizard() {
           _wizard_history[${#_wizard_history[@]}]=5
         fi
         if is_claude_harness; then
-          _wizard_container_items=("browser:스텔스 브라우저 컨테이너 (CDP·우회 fetch)" "mcp:chrome-devtools-mcp 를 사용자 레벨에 등록")
+          _wizard_container_items=("browser:스텔스 브라우저 컨테이너 (CDP·우회 fetch)" "mcp:chrome-devtools-mcp 를 사용자 레벨에 등록" "dashboard:세션 사용량 대시보드 (usage-dashboard)")
         else
-          _wizard_container_items=("browser:스텔스 브라우저 컨테이너 (CDP·우회 fetch)")
+          _wizard_container_items=("browser:스텔스 브라우저 컨테이너 (CDP·우회 fetch)" "dashboard:세션 사용량 대시보드 (usage-dashboard)")
         fi
         if _wizard_containers=$(choose_many "설치할 컨테이너를 고른다" "$CONTAINERS" 0 "${_wizard_container_items[@]}"); then
           _wizard_rc=0
@@ -1022,14 +1024,22 @@ run_install_wizard() {
             *,mcp,*) MCP_REGISTER=1 ;;
             *) MCP_REGISTER=0 ;;
           esac
+          CONTAINERS=""
           case ",$_wizard_containers," in
             *,browser,*) CONTAINERS=browser ;;
-            *) CONTAINERS="" ;;
           esac
-          if [ "$MCP_REGISTER" = "1" ] && [ -z "$CONTAINERS" ]; then
-            note "⚠️ chrome-devtools-mcp 등록은 browser 컨테이너가 필요해 선택을 해제한다." >&2
-            MCP_REGISTER=0
-          fi
+          case ",$_wizard_containers," in
+            *,dashboard,*) CONTAINERS="${CONTAINERS:+$CONTAINERS,}dashboard" ;;
+          esac
+          case ",$CONTAINERS," in
+            *,browser,*) ;;
+            *)
+              if [ "$MCP_REGISTER" = "1" ]; then
+                note "⚠️ chrome-devtools-mcp 등록은 browser 컨테이너가 필요해 선택을 해제한다." >&2
+                MCP_REGISTER=0
+              fi
+              ;;
+          esac
           _wizard_revisiting=0
           _wizard_step=6
         fi
@@ -1175,6 +1185,7 @@ build_container_up_argv() {
   CONTAINER_UP_ARGV=()
   case "$1" in
     browser) CONTAINER_UP_ARGV=(docker compose -f "$KIT_DIR/containers/browser/docker-compose.yml" up -d) ;;
+    dashboard) CONTAINER_UP_ARGV=(docker compose -f "$KIT_DIR/components/usage-dashboard/docker-compose.yml" up -d) ;;
     *) return 1 ;;
   esac
 }
@@ -1555,36 +1566,60 @@ if [ -n "$CONTAINERS" ]; then
       note "⚠️ 알 수 없는 컨테이너: $c" >&2
       continue
     fi
-    if [ ! -f "$KIT_DIR/containers/browser/docker-compose.yml" ]; then
-      if ! git -C "$KIT_DIR" submodule update --init containers/browser; then
-        note "browser: 서브모듈 초기화 실패 — 수동으로 확인할 것" >&2
+    case "$c" in
+      browser)
+        _container_dir=containers/browser
+        _container_port=$CDP_PORT
+        ;;
+      dashboard)
+        _container_dir=components/usage-dashboard
+        _container_port=$DASH_PORT
+        ;;
+    esac
+    if [ ! -f "$KIT_DIR/$_container_dir/docker-compose.yml" ]; then
+      if ! git -C "$KIT_DIR" submodule update --init "$_container_dir"; then
+        note "$c: 서브모듈 초기화 실패 — 수동으로 확인할 것" >&2
+        note "$c: $(container_up_command "$c") 를 직접 실행할 것"
+        continue
+      fi
+      if [ ! -f "$KIT_DIR/$_container_dir/docker-compose.yml" ]; then
+        case " $CONTAINER_START_FAILED " in
+          *" $c "*) ;;
+          *) CONTAINER_START_FAILED="${CONTAINER_START_FAILED:+$CONTAINER_START_FAILED }$c" ;;
+        esac
+        mark_manual_step container
+        note "$c: 서브모듈은 초기화됐지만 compose 파일이 없다 — 수동으로 확인할 것" >&2
         note "$c: $(container_up_command "$c") 를 직접 실행할 것"
         continue
       fi
     fi
     if ! command -v docker >/dev/null 2>&1; then
-      note "browser: docker를 찾지 못해 자동 기동을 건너뜀" >&2
+      note "$c: docker를 찾지 못해 자동 기동을 건너뜀" >&2
       note "$c: $(container_up_command "$c") 를 직접 실행할 것"
       continue
     fi
     if ! docker compose version >/dev/null 2>&1; then
-      note "browser: compose를 사용할 수 없어 자동 기동을 건너뜀" >&2
+      note "$c: compose를 사용할 수 없어 자동 기동을 건너뜀" >&2
       note "$c: $(container_up_command "$c") 를 직접 실행할 것"
       continue
     fi
-    if ( : >/dev/tcp/127.0.0.1/"$CDP_PORT" ) >/dev/null 2>&1; then
-      note "browser: $CDP_PORT 포트가 사용 중이라 자동 기동을 건너뜀" >&2
+    if ( : >/dev/tcp/127.0.0.1/"$_container_port" ) >/dev/null 2>&1; then
+      note "$c: $_container_port 포트가 사용 중이라 자동 기동을 건너뜀" >&2
       note "$c: $(container_up_command "$c") 를 직접 실행할 것"
       continue
     fi
-    if ! prompt_yes_no "browser를 지금 기동할까요? 이미지 빌드에 수 분이 걸릴 수 있다." no; then
-      note "browser: 동의를 받지 못해 자동 기동을 건너뜀" >&2
+    if ! prompt_yes_no "$c 를 지금 기동할까요? 이미지 빌드에 수 분이 걸릴 수 있다." no; then
+      note "$c: 동의를 받지 못해 자동 기동을 건너뜀" >&2
       note "$c: $(container_up_command "$c") 를 직접 실행할 것"
       continue
     fi
     if ! "${CONTAINER_UP_ARGV[@]}"; then
+      case " $CONTAINER_START_FAILED " in
+        *" $c "*) ;;
+        *) CONTAINER_START_FAILED="${CONTAINER_START_FAILED:+$CONTAINER_START_FAILED }$c" ;;
+      esac
       mark_manual_step container
-      note "browser: 자동 기동 실패 — 수동으로 확인할 것" >&2
+      note "$c: 자동 기동 실패 — 수동으로 확인할 것" >&2
       note "$c: $(container_up_command "$c") 를 직접 실행할 것"
     fi
   done
@@ -1674,9 +1709,9 @@ if [ -n "$MANUAL_STEP_REASONS" ]; then
   case " $MANUAL_STEP_REASONS " in
     *" container "*)
       _manual_container_old_ifs=$IFS
-      IFS=','
+      IFS=' '
       set -f
-      for _manual_container_name in $CONTAINERS; do
+      for _manual_container_name in $CONTAINER_START_FAILED; do
         printf '    %s) %s 컨테이너 기동 재시도: %s\n' "$_manual_step_number" "$_manual_container_name" "$(container_up_command "$_manual_container_name")"
         _manual_step_number=$((_manual_step_number + 1))
       done

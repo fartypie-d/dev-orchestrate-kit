@@ -34,7 +34,7 @@
    바뀌지 않는다.
 5. **페이즈 클레임** — `bash scripts/phase-claim.sh <slug>`가 flock 원자 처리로 ①레지스트리에서
    번호 발급 ②`git worktree add` ③브랜치 생성을 한 번에 수행하고 `PHASE=/WORKTREE=/BRANCH=`를
-   출력한다. 번호는 레지스트리가 유일한 소스 — `ls DOCs/` 육안 선택은 다른 워크트리의 지시서가
+   출력한다. 번호는 레지스트리가 유일한 소스 — `ls docs/phases/` 육안 선택은 다른 워크트리의 지시서가
    안 보여 중복을 만든다(실측 2건). §03 참조.
 6. **위임** — 프롬프트를 `.orchestrate/task<N>.prompt` 파일로 저장하고 `run-delegation.sh`를
    백그라운드로 실행한다(락·모델 폴백·워치독 내장). trivial·small은 메인이 직접 판정하고,
@@ -85,7 +85,7 @@
   직렬화한다 — `opencode serve` attach가 가능하면 **프로젝트별 락**(같은 프로젝트·워크트리끼리만
   직렬, 프로젝트 간 병렬), serve 환경이 없으면 standalone 폴백으로 **전역 락**(`opencode.lock`)이
   전체를 직렬화한다. 동시 위임은 실패가 아니라 **대기**(최대 30분, `LOCK_WAIT` 로그)가 된다.
-- **지시서는 크기가 통제된다.** `DOCs/PHASE<N>_<slug>.md`. task 3개 이상이면 인덱스(10KB 상한) +
+- **지시서는 크기가 통제된다.** `docs/phases/PHASE<N>_<slug>.md`. task 3개 이상이면 인덱스(10KB 상한) +
   `.tasks/task<N>.md`로 분할한다 — 단일 거대 지시서는 압축 후 재읽기 루프로 세션을 죽인 실측이
   있다. 인덱스가 상한을 넘으면 페이즈를 쪼개라는 신호다.
 - **`phase-close.sh <N>` · janitor — 끝도 원샷.** 워크트리 제거·병합 브랜치 삭제·로그 아카이브·
@@ -134,7 +134,7 @@ GPT 우선 정책 — 티어 순서는 openai → xai → antigravity → qwen�
 폴백이 실제로 성립한다. 🔴 위험 도메인(실자금 등)·large task·리뷰 반려 재위임은 처음부터 heavy
 티어.
 
-## 06 이 플로우를 만드는 킷 — dev-orchestrate-kit v2
+## 06 이 플로우를 만드는 킷 — aigsprac v2
 
 위 플로우는 프로젝트마다 손으로 만드는 게 아니라 킷이 스탬프한다. v2는 **core(하네스 무관) +
 adapters(하네스별) + containers(선택)** 계층 구조다. 전역은 `./install.sh` 한 번, 프로젝트는
@@ -144,7 +144,7 @@ adapters(하네스별) + containers(선택)** 계층 구조다. 전역은 `./ins
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="assets/fig-kit-dark.svg">
-  <img alt="dev-orchestrate-kit v2 구조 — core·adapters·containers와 전역/프로젝트 설치 경로" src="assets/fig-kit.svg">
+  <img alt="aigsprac v2 구조 — core·adapters·containers와 전역/프로젝트 설치 경로" src="assets/fig-kit.svg">
 </picture>
 
 런타임에는 전역 /orchestrate 스킬이 프로젝트의 로스터·스크립트를 참조해 플로우를 구동한다 —
@@ -194,7 +194,7 @@ adapters만 갈아 끼운다.
 
 - **로스터 없이 위임 금지** — `.claude/orchestrate.md`가 에이전트·리뷰어 매핑·검증 명령의 단일
   소스다. 로스터에 없는 에이전트로는 위임하지 않는다.
-- **감독관은 소스에 손대지 않는다** — 감독 하네스가 직접 수정할 수 있는 것은 `DOCs/` 문서와
+- **감독관은 소스에 손대지 않는다** — 감독 하네스가 직접 수정할 수 있는 것은 `docs/phases/` 문서와
   `.claude/` 설정뿐. 나머지는 전부 위임이다.
 - **위험한 일은 기계가 막는다** — opencode 에이전트의 `permission` frontmatter가 git
   commit·push, docker 조작, sudo, `rm -rf`를 차단한다. 커밋 권한은 게이트를 통과한 절차에만 있다.

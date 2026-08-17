@@ -1,4 +1,4 @@
-# dev-orchestrate-kit — 구현 에이전트 공통 규칙 (opencode instructions)
+# aigsprac — 구현 에이전트 공통 규칙 (opencode instructions)
 
 > 이 파일은 opencode 위임 에이전트에게 주입된다. 오케스트레이터(claude) 역할 정의를 여기 넣지 말 것 —
 > 구현 에이전트에 모순 지시가 주입된다.
@@ -15,7 +15,7 @@ core/                 # 하네스 무관 — claude/codex 단어를 모른다
   scripts/            # run-delegation.sh, phase-tools.py 등 (프로젝트에 stamp 되는 원본)
   opencode/           # opencode.json, 프로바이더 매핑·정책 시드, secrets.env.example
   onboard/            # /orchestrate-onboard 절차 본문 (단일 소스)
-  project-template/   # AGENTS.md·로스터·.opencode/·DOCs 스켈레톤 (__PROJECT__ 플레이스홀더 포함)
+  project-template/   # AGENTS.md·로스터·.opencode/·docs/phases 스켈레톤 (__PROJECT__ 플레이스홀더 포함)
 adapters/
   claude/             # 전역 스킬 + 프로젝트 훅·settings·CLAUDE.md·에이전트
   codex/              # ~/.codex/prompts + .codex/ 프로젝트 계층

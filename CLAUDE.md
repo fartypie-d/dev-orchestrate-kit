@@ -1,4 +1,4 @@
-# dev-orchestrate-kit — Claude 오케스트레이터 가이드
+# aigsprac — Claude 오케스트레이터 가이드
 
 ## 역할
 
@@ -8,16 +8,16 @@
 - 오케스트레이션 절차는 **`/orchestrate` 스킬**(전역, `~/.claude/skills/orchestrate/`)을 따른다:
   인터뷰 → task 세분화 → `scripts/run-delegation.sh` 위임 → 도메인 리뷰어 검수.
 - 에이전트 로스터·검증 명령: **`.claude/orchestrate.md`** (에이전트 정의는 `.opencode/agent/*.md`)
-- 소스 코드는 직접 수정하지 않는다 — 위임한다. 직접 수정 가능: `DOCs/`, `.claude/`.
+- 소스 코드는 직접 수정하지 않는다 — 위임한다. 직접 수정 가능: `docs/phases/`, `.claude/`.
 
 ## 세션 운영
 
-- **프로젝트 확인 가드**: 요청이 이 프로젝트(dev-orchestrate-kit)와 무관해 보이면 — 다른 프로젝트의
+- **프로젝트 확인 가드**: 요청이 이 프로젝트(aigsprac)와 무관해 보이면 — 다른 프로젝트의
   파일을 다뤄야 하면 — 진행하지 말고 AskUserQuestion으로 먼저 확인한다. 원격 클라이언트가 직전에
   쓰던 다른 프로젝트 세션에 붙은 채로 요청이 들어와 엉뚱한 프로젝트에서 페이즈가 수행된 실측
   사례가 있다 (2026-07-27).
 - **페이즈 경계 = 세션 경계**: 페이즈 완료(지시서 아카이브 + 리뷰 문서 커밋) 후에는 세션을 정리하고,
-  다음 페이즈는 **새 세션**으로 시작하도록 안내한다. 상태는 `DOCs/PHASE*.md`와 `DOCs/INDEX.md`에
+  다음 페이즈는 **새 세션**으로 시작하도록 안내한다. 상태는 `docs/phases/PHASE*.md`와 `docs/phases/INDEX.md`에
   외부화되어 있으므로 새 세션 재시동 비용이 낮다. auto-compaction이 반복되는 장수 세션은 요약
   품질을 통제할 수 없고 비용도 크다 — 컴팩션에 의존하지 말고 명시적으로 끊을 것.
 - **병렬 세션**: 같은 프로젝트에서 두 번째 세션이 동시에 작업해야 하면 메인 체크아웃이 아니라
@@ -49,7 +49,7 @@ bash scripts/hook-selfcheck.sh             # 훅 자가진단 (HOOK_SELFCHECK_PA
 ## 이 저장소의 함정 (반복 금지)
 
 > 실측으로 확인된 함정만 남긴다. 페이즈 중 새 함정이 실측되면 완료 보고 때 여기 append한다.
-> (형식: 무엇을 하면 → 무엇이 죽는지 → 실측 날짜) — **상세는 `DOCs/PITFALLS.md`**
+> (형식: 무엇을 하면 → 무엇이 죽는지 → 실측 날짜) — **상세는 `docs/phases/PITFALLS.md`**
 
 - **`INSTALL_PARSE_ONLY` 로 메뉴 동작을 검증하지 말 것** — 메뉴 코드가 정의되기 전에 종료되므로
   기능을 통째로 지워도 통과하는 "항상 참" 테스트가 된다. 메뉴는 `INSTALL_SELFTEST_MENU` 로 검증하고,
@@ -92,6 +92,8 @@ bash scripts/hook-selfcheck.sh             # 훅 자가진단 (HOOK_SELFCHECK_PA
 - **컨테이너 실기동 테스트는 서브모듈이 초기화된 체크아웃을 전제한다** — 프레시 클론에서는
   먼저 `git submodule update --init containers/browser components/usage-dashboard`. 단 워크트리
   안에서 init 하면 phase-close 가 크래시한다(함정 7) — PITFALLS 24 (2026-08-14).
+- **로컬 main 미푸시 상태에서 `phase-claim.sh` 를 실행하지 말 것** — 낡은 origin/main 에서
+  분기돼 페이즈 도중 리베이스가 필요해진다. claim 직후 `git merge-base HEAD main` 확인 (PITFALLS 25, 2026-08-17).
 - **`__PROJECT__` 를 저장소 전역에서 일괄 치환하지 말 것** — `core/project-template/`·`docs/plans/`
   에는 플레이스홀더가 정당하게 존재한다. stamp 치환 범위를 넓히면 템플릿 원본이 클로버된다
   (2026-08-08 도그푸딩 실측 사고 — lib/stamp.sh 가 복사분만 치환하는 이유).

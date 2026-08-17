@@ -63,6 +63,72 @@ class Base(unittest.TestCase):
 
 
 class TestInit(Base):
+    # Phase 8 RED (오케스트레이터 작성·동결 — 위임 수정 금지)
+    def test_init_default_docs_dir_is_docs_phases(self):
+        phases = self.root / "docs" / "phases"
+        phases.mkdir(parents=True)
+        (phases / "PHASE3_seed.md").write_text("---\nphase: 3\nstatus: done\n---\n")
+        run_tool(["init", "--default-branch", "develop"], self.root, self.env, check=True)
+        reg = self.registry()
+        self.assertEqual(reg["docs_dir"], "docs/phases")
+        self.assertEqual(reg["next_phase"], 4)  # docs/phases의 PHASE3 스캔 → 4 (DOCs의 7은 무시)
+
+    def test_init_default_falls_back_to_DOCs_when_no_docs_phases(self):
+        # 미마이그레이션 프로젝트(DOCs만 존재)에서 --docs-dir 생략 시
+        # 존재하지 않는 docs/phases로 phase 카운터가 리셋되면 안 된다
+        run_tool(["init", "--default-branch", "develop"], self.root, self.env, check=True)
+        reg = self.registry()
+        self.assertEqual(reg["docs_dir"], "DOCs")
+        self.assertEqual(reg["next_phase"], 8)
+
+    def test_init_default_ignores_empty_docs_phases(self):
+        # docs/phases가 존재하지만 비어있으면 실문서가 있는 DOCs를 쓴다
+        (self.root / "docs" / "phases").mkdir(parents=True)
+        run_tool(["init", "--default-branch", "develop"], self.root, self.env, check=True)
+        reg = self.registry()
+        self.assertEqual(reg["docs_dir"], "DOCs")
+        self.assertEqual(reg["next_phase"], 8)
+
+    def test_init_default_ignores_scaffolding_only_docs_phases(self):
+        # docs/phases에 PHASE 문서가 아닌 스텁(.md)만 있으면 DOCs를 쓴다
+        scaffold = self.root / "docs" / "phases"
+        (scaffold / "TEMPLATES").mkdir(parents=True)
+        (scaffold / "TEMPLATES" / "CURRENT_TASK_template.md").write_text("stub")
+        (scaffold / "specs").mkdir()
+        (scaffold / "specs" / "design.md").write_text("stub")
+        run_tool(["init", "--default-branch", "develop"], self.root, self.env, check=True)
+        reg = self.registry()
+        self.assertEqual(reg["docs_dir"], "DOCs")
+        self.assertEqual(reg["next_phase"], 8)
+
+    def test_init_picks_docs_phases_when_only_reviews_docs(self):
+        # 실문서가 docs/phases/reviews/ 하위에만 있어도 docs-index와 동일하게
+        # docs/phases를 선택해야 한다 (스크립트 간 판정 불일치 금지)
+        reviews = self.root / "docs" / "phases" / "reviews"
+        reviews.mkdir(parents=True)
+        (reviews / "PHASE12_REVIEW.md").write_text("---\nphase: 12\nstatus: done\n---\n")
+        self.git("add", ".")
+        self.git("commit", "-m", "reviews")
+        run_tool(["init", "--default-branch", "develop"], self.root, self.env, check=True)
+        reg = self.registry()
+        self.assertEqual(reg["docs_dir"], "docs/phases")
+        self.assertEqual(reg["next_phase"], 13)
+
+    def test_reseed_without_docs_dir_preserves_registry_value(self):
+        # 운영 중 레지스트리의 docs_dir를 --reseed가 기본값으로 덮어쓰면 안 된다
+        self.init_registry()  # docs_dir=DOCs 명시
+        (self.root / "docs" / "phases").mkdir(parents=True)
+        (self.root / "docs" / "phases" / "PHASE2_other.md").write_text(
+            "---\nphase: 2\nstatus: done\n---\n"
+        )
+        run_tool(
+            ["init", "--default-branch", "develop", "--reseed"],
+            self.root, self.env, check=True,
+        )
+        reg = self.registry()
+        self.assertEqual(reg["docs_dir"], "DOCs")
+        self.assertEqual(reg["next_phase"], 8)
+
     def test_init_seeds_next_phase_from_docs(self):
         self.init_registry()
         reg = self.registry()
@@ -171,6 +237,30 @@ class TestClose(Base):
                        check=True, capture_output=True, timeout=60)
         r = run_tool(["close", "8"], self.root, self.env)
         self.assertEqual(r.returncode, 2)
+        self.assertTrue(wt.exists())  # 아무것도 지우지 않음
+
+    def test_close_refuses_in_progress_when_reviews_only_content(self):
+        # docs_dir 판정이 reviews/ 하위 실문서를 인지해 docs/phases로 결정되고,
+        # 그 안의 in-progress 지시서가 --force 없는 close를 막아야 한다
+        reviews = self.root / "docs" / "phases" / "reviews"
+        reviews.mkdir(parents=True)
+        (reviews / "PHASE12_REVIEW.md").write_text("---\nphase: 12\nstatus: done\n---\n")
+        self.git("add", ".")
+        self.git("commit", "-m", "reviews")
+        run_tool(["init", "--default-branch", "develop"], self.root, self.env, check=True)
+        run_tool(["claim", "gap"], self.root, self.env, check=True)
+        entry = self.registry()["active"][0]
+        self.assertEqual(entry["phase"], 13)  # reviews/의 PHASE12 인지 → 13 발급
+        wt = self.root / entry["worktree"]
+        doc = wt / "docs" / "phases" / "PHASE13_gap.md"
+        doc.parent.mkdir(parents=True, exist_ok=True)
+        doc.write_text("---\nphase: 13\nstatus: in-progress\n---\n")
+        subprocess.run(["git", "-C", str(wt), "add", "."],
+                       check=True, capture_output=True, timeout=60)
+        subprocess.run(["git", "-C", str(wt), "commit", "-m", "wip"],
+                       check=True, capture_output=True, timeout=60)
+        r = run_tool(["close", "13"], self.root, self.env)
+        self.assertEqual(r.returncode, 2, r.stdout + r.stderr)
         self.assertTrue(wt.exists())  # 아무것도 지우지 않음
 
     def test_close_keeps_dirty_worktree_but_clears_entry_with_force(self):

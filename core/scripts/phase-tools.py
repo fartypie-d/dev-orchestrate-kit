@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
-"""orchestrate phase 레지스트리 도구 — init / claim / close / janitor.
+"""orchestrate phase 레지스트리 도구 — init / claim / close / janitor / dashboard-mounts.
 
 phase 번호의 유일한 진실의 원천은 ~/.local/state/orchestrate/registry/<project>.json.
 git 밖·세션 밖 파일이므로 병렬 세션의 브랜치 가시성 한계와 세션 절단에 영향받지 않는다.
 모든 레지스트리 갱신은 flock 안에서 수행된다.
 
 사용:
-  python3 scripts/phase-tools.py init --default-branch develop --docs-dir DOCs
+  python3 scripts/phase-tools.py init --default-branch develop --docs-dir docs/phases
   python3 scripts/phase-tools.py claim <slug> [--base <ref>]
   python3 scripts/phase-tools.py close <N> [--keep-worktree] [--force] [--target <ref>]
   python3 scripts/phase-tools.py janitor
+  python3 scripts/phase-tools.py dashboard-mounts [--print-path]
 """
 from __future__ import annotations
 
@@ -77,12 +78,10 @@ def merge_target(root, db: str) -> str:
 
 def scan_max_phase(root: Path, docs_dir: str) -> int:
     nums = [0]
-    for base in (root / docs_dir, root / docs_dir / "archive"):
-        if base.is_dir():
-            for f in base.iterdir():
-                m = PHASE_RE.search(f.name)
-                if m:
-                    nums.append(int(m.group(1)))
+    for f in phase_document_files(root, docs_dir):
+        m = PHASE_RE.search(f.name)
+        if m:
+            nums.append(int(m.group(1)))
     branches = git(root, "branch", "-a", check=False).stdout
     nums += [int(m.group(1)) for m in PHASE_RE.finditer(branches)]
     wt_base = root / WORKTREE_BASE
@@ -92,13 +91,37 @@ def scan_max_phase(root: Path, docs_dir: str) -> int:
             if m:
                 nums.append(int(m.group(1)))
             # 워크트리 안에서 번호가 리네임되면 문서만이 유일한 근거다 (166→167 실측)
-            wt_docs = d / docs_dir
-            if wt_docs.is_dir():
-                for f in wt_docs.iterdir():
-                    m = PHASE_RE.search(f.name)
-                    if m:
-                        nums.append(int(m.group(1)))
+            for f in phase_document_files(d, docs_dir):
+                m = PHASE_RE.search(f.name)
+                if m:
+                    nums.append(int(m.group(1)))
     return max(nums)
+
+
+def phase_document_files(root: Path, docs_dir: str):
+    """스캐폴드 제외 재귀 페이즈 문서를 반환한다."""
+    base = root / docs_dir
+    if not base.is_dir():
+        return
+    for path in base.rglob("*.md"):
+        parts = path.relative_to(base).parts
+        if any(part in ("TEMPLATES", "specs", "images") for part in parts):
+            continue
+        if PHASE_RE.search(path.name):
+            yield path
+
+
+def default_docs_dir(root: Path) -> str:
+    """문서 내용까지 확인해 init의 기본 문서 경로를 고른다."""
+    docs_phases = root / "docs" / "phases"
+    legacy_docs = root / "DOCs"
+    if docs_phases.is_dir() and any(
+            PHASE_RE.search(path.name)
+            for path in phase_document_files(root, "docs/phases")):
+        return "docs/phases"
+    if legacy_docs.is_dir():
+        return "DOCs"
+    return "docs/phases"
 
 
 class Registry:
@@ -138,12 +161,18 @@ def cmd_init(args):
         if reg.data is not None and not args.reseed:
             print(f"레지스트리 존재 — next_phase={reg.data['next_phase']} (변경 없음)")
             return 0
-        seed = scan_max_phase(root, args.docs_dir) + 1
+        if args.docs_dir is not None:
+            docs_dir = args.docs_dir
+        elif reg.data is not None:
+            docs_dir = reg.data["docs_dir"]
+        else:
+            docs_dir = default_docs_dir(root)
+        seed = scan_max_phase(root, docs_dir) + 1
         reg.data = {
             "project": root.name,
             "root": str(root),
             "default_branch": args.default_branch,
-            "docs_dir": args.docs_dir,
+            "docs_dir": docs_dir,
             "next_phase": seed,
             "active": reg.data["active"] if reg.data else [],
         }
@@ -448,13 +477,106 @@ def _janitor_inner():
     return 0
 
 
+def cmd_dashboard_mounts(args: argparse.Namespace) -> int:
+    """레지스트리의 존재하는 문서 디렉터리로 대시보드 compose override를 만든다."""
+    registry_dir = state_dir()
+    override_path = registry_dir.parent / "dashboard-compose.override.yml"
+    if args.print_path:
+        print(override_path)
+        return 0
+
+    project_docs: list[tuple[str, str, Path, Path]] = []
+    registry_paths = sorted(registry_dir.glob("*.json"))
+    for registry_path in registry_paths:
+        try:
+            entry = json.loads(registry_path.read_text(encoding="utf-8"))
+            if not isinstance(entry, dict):
+                raise ValueError("레지스트리 항목은 객체여야 함")
+            project = entry["project"]
+            root = entry["root"]
+            docs_dir = entry["docs_dir"]
+            if not all(isinstance(value, str) for value in
+                       (project, root, docs_dir)):
+                raise ValueError("project, root, docs_dir는 문자열이어야 함")
+        except (json.JSONDecodeError, KeyError, OSError, TypeError, ValueError) as error:
+            print(f"경고: 레지스트리 항목 건너뜀 ({registry_path.name}: {error})",
+                  file=sys.stderr)
+            continue
+
+        try:
+            mount_path = Path(root) / docs_dir
+            if not Path(root).is_absolute():
+                raise ValueError("프로젝트 root가 절대경로가 아님")
+            root_path = Path(root).resolve()
+            docs_path = mount_path.resolve()
+            if any(ord(char) < 32 or ord(char) == 127
+                   for value in (root, docs_dir, str(mount_path))
+                   for char in value):
+                raise ValueError("경로에 제어 문자가 있음")
+            try:
+                docs_path.relative_to(root_path)
+            except ValueError as error:
+                raise ValueError("문서 경로가 프로젝트 root 밖에 있음") from error
+            if docs_path == root_path:
+                raise ValueError("문서 경로가 프로젝트 root와 같음")
+            if not docs_path.is_dir():
+                print(f"경고: 문서 디렉터리 건너뜀 (project={project!r}, "
+                      f"registry={registry_path.name!r}, path={str(docs_path)!r}: "
+                      "디렉터리가 없음)", file=sys.stderr)
+                continue
+        except (OSError, RuntimeError, ValueError) as error:
+            print(f"경고: 문서 디렉터리 건너뜀 (project={project!r}, "
+                  f"registry={registry_path.name!r}, "
+                  f"path={str(Path(root) / docs_dir)!r}: {error})", file=sys.stderr)
+            continue
+        project_docs.append((project, registry_path.name, docs_path, mount_path))
+
+    mounts: list[str] = []
+    seen_paths: set[Path] = set()
+    for project, registry_name, docs_path, mount_path in sorted(
+            project_docs, key=lambda item: item[0]):
+        if mount_path in seen_paths:
+            print(f"경고: 문서 디렉터리 건너뜀 (project={project!r}, "
+                  f"registry={registry_name!r}, path={str(mount_path)!r}: "
+                  "중복 마운트 경로)", file=sys.stderr)
+            continue
+        seen_paths.add(mount_path)
+        mounts.append(f"{docs_path}:{mount_path}:ro")
+
+    if not mounts:
+        override_path.unlink(missing_ok=True)
+        if registry_paths:
+            print(f"경고: 레지스트리 항목 {len(registry_paths)}개 중 마운트 0개",
+                  file=sys.stderr)
+        return 0
+
+    registry_mount = f"{registry_dir}:/data/orchestrate-registry:ro"
+    lines = [
+        "services:",
+        "  usage-dashboard:",
+        "    volumes:",
+        f"      - {json.dumps(registry_mount, ensure_ascii=False)}",
+    ]
+    lines.extend(f"      - {json.dumps(mount, ensure_ascii=False)}" for mount in mounts)
+    lines.extend([
+        "    environment:",
+        "      - USAGE_REGISTRY_DIR=/data/orchestrate-registry",
+        "",
+    ])
+    tmp = override_path.with_suffix(".tmp")
+    tmp.write_text("\n".join(lines), encoding="utf-8")
+    tmp.rename(override_path)
+    print(override_path)
+    return 0
+
+
 def main(argv=None):
     p = argparse.ArgumentParser(prog="phase-tools")
     sub = p.add_subparsers(dest="cmd", required=True)
 
     p_init = sub.add_parser("init", help="레지스트리 생성·시드")
     p_init.add_argument("--default-branch", required=True)
-    p_init.add_argument("--docs-dir", default="DOCs")
+    p_init.add_argument("--docs-dir", default=None)
     p_init.add_argument("--reseed", action="store_true")
     p_init.set_defaults(fn=cmd_init)
 
@@ -473,6 +595,12 @@ def main(argv=None):
 
     p_jan = sub.add_parser("janitor", help="세션 시작 잔재 정리·보고 (항상 exit 0)")
     p_jan.set_defaults(fn=cmd_janitor)
+
+    p_mounts = sub.add_parser("dashboard-mounts",
+                              help="대시보드 문서·레지스트리 마운트 override 생성")
+    p_mounts.add_argument("--print-path", action="store_true",
+                          help="생성 없이 override 대상 경로만 출력")
+    p_mounts.set_defaults(fn=cmd_dashboard_mounts)
 
     args = p.parse_args(argv)
     return args.fn(args)

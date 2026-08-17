@@ -1,4 +1,4 @@
-# dev-orchestrate-kit 오케스트레이터 로스터
+# aigsprac 오케스트레이터 로스터
 
 > 전역 `/orchestrate` 스킬이 참조하는 프로젝트별 에이전트 목록·리뷰어 매핑·TDD 규정·검증 명령.
 > 에이전트 정의: `.opencode/agent/*.md`
@@ -15,7 +15,7 @@
 
 | 에이전트 | 담당 | 위험도 (🔴·⚠️는 heavy 기본) |
 |---|---|---|
-| `kit-scripts` | `install.sh`, `new-project.sh`, `adopt-project.sh`, `lib/`, `core/opencode/*.sh`, `core/scripts/*.sh`, `adapters/**/*.sh` | ⚠️ — 설치 스크립트가 사용자 홈(`~/.claude`, `~/.config`)을 건드린다 |
+| `kit-scripts` | `install.sh`, `new-project.sh`, `adopt-project.sh`, `lib/`, `core/opencode/*.sh`, `core/scripts/*` (`*.sh`·`*.py` 모두 — `phase-tools.py`·`docs-index.py` 포함), `adapters/**/*.sh` | ⚠️ — 설치 스크립트가 사용자 홈(`~/.claude`, `~/.config`)을 건드린다 |
 | `kit-tests` | `tests/*.py` | 낮음 |
 | `kit-docs` | `README.md`, `docs/`, `core/project-template/**/*.md`, `containers/**/README.md` | 낮음 |
 
@@ -39,7 +39,7 @@ task 하나가 끝날 때마다 해당 도메인의 리뷰어를 **Agent 툴로 
 
 | 구현 에이전트 | 리뷰어 (ECC `~/.claude/agents/` 우선) | 출처 |
 |---|---|---|
-| `kit-scripts` | `bash-reviewer` + `security-reviewer` + `silent-failure-hunter` | 프로젝트 신설 + ECC |
+| `kit-scripts` | `bash-reviewer` + `security-reviewer` + `silent-failure-hunter` (대상이 `core/scripts/*.py` 면 `bash-reviewer` 대신 `python-reviewer`) | 프로젝트 신설 + ECC |
 | `kit-tests` | `python-reviewer` | ECC |
 | `kit-docs` | `code-reviewer` | ECC |
 

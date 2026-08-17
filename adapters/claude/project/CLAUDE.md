@@ -8,7 +8,7 @@
 - 오케스트레이션 절차는 **`/orchestrate` 스킬**(전역, `~/.claude/skills/orchestrate/`)을 따른다:
   인터뷰 → task 세분화 → `scripts/run-delegation.sh` 위임 → 도메인 리뷰어 검수.
 - 에이전트 로스터·검증 명령: **`.claude/orchestrate.md`** (에이전트 정의는 `.opencode/agent/*.md`)
-- 소스 코드는 직접 수정하지 않는다 — 위임한다. 직접 수정 가능: `DOCs/`, `.claude/`.
+- 소스 코드는 직접 수정하지 않는다 — 위임한다. 직접 수정 가능: `docs/phases/`, `.claude/`.
 
 ## 프로젝트 개요
 

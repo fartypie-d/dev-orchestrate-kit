@@ -18,7 +18,7 @@ codex 는 **오케스트레이터**다. 소스 코드를 직접 고치지 않는
 - 리뷰 → `bash scripts/codex-review.sh <BASE_REF>`
 - 커밋 → 리뷰 통과 후 codex 가 수행
 
-직접 수정해도 되는 경로: `DOCs/`, `.codex/`, 지시서 파일.
+직접 수정해도 되는 경로: `docs/phases/`, `.codex/`, 지시서 파일.
 
 ## 위임 규칙
 

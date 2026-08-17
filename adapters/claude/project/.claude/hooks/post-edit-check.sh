@@ -3,8 +3,9 @@
 set -uo pipefail
 FILE=$(jq -r '.tool_input.file_path // empty' 2>/dev/null)
 [ -z "$FILE" ] || [ ! -f "$FILE" ] && exit 0
+# DOCs 병행은 전체 프로젝트 docs/phases 이관 완료 후 제거 (Phase 8 전환기)
 case "$FILE" in
-  */DOCs/*|*/.agents/*|*/.claude/*|*/.opencode/*) exit 0;;
+  */docs/phases/*|*/DOCs/*|*/.agents/*|*/.claude/*|*/.opencode/*) exit 0;;
 esac
 case "${FILE##*.}" in
   py)

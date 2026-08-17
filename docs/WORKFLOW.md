@@ -38,7 +38,7 @@ harness follows the same skeleton, with only the review step swapped for `codex-
 5. **Phase claim** — `bash scripts/phase-claim.sh <slug>` does, atomically under flock,
    ① issue a number from the registry, ② `git worktree add`, and ③ create the branch in one
    shot, printing `PHASE=/WORKTREE=/BRANCH=`. The registry is the sole source of the number —
-   eyeballing `ls DOCs/` can't see briefs in other worktrees and creates duplicates (2
+   eyeballing `ls docs/phases/` can't see briefs in other worktrees and creates duplicates (2
    observed incidents). See §03.
 6. **Delegation** — the prompt is saved to a `.orchestrate/task<N>.prompt` file and
    `run-delegation.sh` is run in the background (locking, model fallback, watchdog
@@ -102,7 +102,7 @@ where parallel sessions are common.
   across projects); without a serve environment, the standalone fallback serializes
   everything under a **global lock** (`opencode.lock`). Concurrent delegation is not a
   failure but a **wait** (up to 30 min, `LOCK_WAIT` log).
-- **Briefs are size-controlled.** `DOCs/PHASE<N>_<slug>.md`. With 3+ tasks it is split into
+- **Briefs are size-controlled.** `docs/phases/PHASE<N>_<slug>.md`. With 3+ tasks it is split into
   an index (10KB cap) + `.tasks/task<N>.md` — a single giant brief has been observed killing
   a session with the compact-then-reread loop. When the index exceeds the cap, that's a
   signal to split the phase.
@@ -158,7 +158,7 @@ quota pool (subscription OAuth / API key / proxy), so the fallback actually hold
 High-risk domains (real money, etc.), large tasks, and review-rejection re-delegation start
 at the heavy tier from the outset.
 
-## 06 The kit that builds this flow — dev-orchestrate-kit v2
+## 06 The kit that builds this flow — aigsprac v2
 
 The flow above isn't hand-built per project — the kit stamps it. v2 is a layered structure of
 **core (harness-agnostic) + adapters (per-harness) + containers (optional)**. Global is
@@ -169,7 +169,7 @@ agents, and reviewer mapping.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="assets/fig-kit-en-dark.svg">
-  <img alt="dev-orchestrate-kit v2 structure — core·adapters·containers and global/project install paths" src="assets/fig-kit-en.svg">
+  <img alt="aigsprac v2 structure — core·adapters·containers and global/project install paths" src="assets/fig-kit-en.svg">
 </picture>
 
 At runtime the global /orchestrate skill drives the flow by referencing the project's roster
@@ -227,7 +227,7 @@ orchestration.
   agent/reviewer mapping and verification commands. Don't delegate to an agent not in the
   roster.
 - **The supervisor doesn't touch source** — the only things the supervisor harness may edit
-  directly are `DOCs/` documents and `.claude/` config. Everything else is delegated.
+  directly are `docs/phases/` documents and `.claude/` config. Everything else is delegated.
 - **Machines block the dangerous stuff** — the opencode agents' `permission` frontmatter
   blocks git commit·push, docker operations, sudo, and `rm -rf`. Commit rights exist only for
   a procedure that has passed the gates.

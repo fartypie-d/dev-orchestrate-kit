@@ -20,7 +20,7 @@ description: Use when 프로젝트에 오케스트레이션 스캐폴드를 찍�
 
 파일이 없으면 키트 설치가 안 된 것이다. 다음을 안내하고 종료한다:
 
-> `~/.config/orchestrate/ONBOARD-PROCEDURE.md` 가 없습니다. dev-orchestrate-kit 의 `./install.sh` 를 먼저 실행해 주세요.
+> `~/.config/orchestrate/ONBOARD-PROCEDURE.md` 가 없습니다. aigsprac 의 `./install.sh` 를 먼저 실행해 주세요.
 
 ## 2단계: 절차 수행 시 claude 전용 사항
 

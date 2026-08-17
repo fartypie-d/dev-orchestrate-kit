@@ -144,7 +144,9 @@ run-delegation.sh는 antigravity 모델 시도 전 프록시 생존을 확인하
    를 프로젝트 `scripts/`로 복사, 실행 권한 유지 (스캐폴드 스크립트가 자동 처리 —
    수동 이식 시에만 이 경로)
 2. 레지스트리 초기화 (프로젝트 루트에서):
-   `python3 scripts/phase-tools.py init --default-branch <병합 기준 브랜치> --docs-dir <DOCs|docs>`
+   `python3 scripts/phase-tools.py init --default-branch <병합 기준 브랜치> --docs-dir <경로>`
+   `--docs-dir`를 생략하면 기본 경로는 `docs/phases`다. 기존 프로젝트의 `DOCs`는 자동
+   폴백으로 인식하며, 그 밖의 경로를 쓰려면 `--docs-dir`로 명시한다.
 3. `.claude/settings.json` SessionStart 훅에 추가 (기존 hook-selfcheck 항목 뒤):
    `{"type": "command", "command": "\"$CLAUDE_PROJECT_DIR\"/scripts/orchestrate-janitor.sh", "timeout": 60}`
 4. permissions.allow에 추가:

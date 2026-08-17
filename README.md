@@ -1,4 +1,6 @@
-# dev-orchestrate-kit
+# aigsprac
+
+> formerly **dev-orchestrate-kit**
 
 **English** | [한국어](./README.ko.md)
 
@@ -17,6 +19,12 @@ A bootstrap kit that reproduces this development environment on any machine. It 
 custom orchestration stack (onboarding command, model fallback chains, project scaffolding)
 on top of [everything-claude-code](https://github.com/affaan-m/everything-claude-code) and
 [superpowers](https://github.com/obra/superpowers).
+
+## The AI General Staff practice
+
+aigsprac = "AI General Staff practice". The supervisor harness is the general
+staff — it only plans, reviews, and approves; implementation is carried out by
+delegated field agents (opencode) running on the subscriptions you already pay for.
 
 ## Why
 
@@ -60,8 +68,8 @@ has three layers:
 ## Quick start
 
 ```bash
-git clone https://github.com/fartypie-d/dev-orchestrate-kit.git
-cd dev-orchestrate-kit
+git clone https://github.com/fartypie-d/aigsprac.git
+cd aigsprac
 
 # Once per machine — installs global assets under $HOME; harness/provider choices are
 # auto-detected or asked interactively if omitted (harness = supervisor-side Claude Code and/or Codex;
@@ -175,8 +183,34 @@ docker compose build && docker compose up -d
 # http://127.0.0.1:9280 (localhost only)
 ```
 
+After migrating an existing `DOCs` project to `docs/phases`, change `docs_dir` to
+`docs/phases` in `~/.local/state/orchestrate/registry/<project>.json` and recreate the mount.
+
 Development happens in its own repository; this kit only bumps the submodule pointer at
 release time.
+
+### Dashboard document mounts
+
+The dashboard opens each project's progress documents at the host absolute path recorded in the
+orchestrate registry. That path must also be mounted at the same path inside the container;
+otherwise the UI shows “No documents”. `./install.sh --containers=dashboard` reads the registry,
+automatically generates the dashboard Compose override, and applies it when the file exists.
+By default it writes `~/.local/state/orchestrate/dashboard-compose.override.yml`; when
+`ORCH_STATE_DIR` is set, it writes under that directory instead.
+
+After registering a new project or changing a DOCs path, regenerate the mounts and restart the
+dashboard from the repository root:
+
+```bash
+python3 scripts/phase-tools.py dashboard-mounts
+docker compose -f components/usage-dashboard/docker-compose.yml \
+  -f ~/.local/state/orchestrate/dashboard-compose.override.yml up -d
+```
+
+Non-existent DOCs directories are skipped, so Docker does not create root-owned empty directories
+on the host. Mounts are read-only (`ro`) and asymmetric: the source resolves symlinks to the real
+path, while the target keeps the registry path the dashboard opens. If you replace a symlink,
+regenerate the override before restarting the dashboard.
 
 ## Standalone module — the browser container
 

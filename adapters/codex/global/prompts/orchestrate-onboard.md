@@ -15,7 +15,7 @@
 `~/.config/orchestrate/ONBOARD-PROCEDURE.md` 를 읽고 1~7 단계를 순서대로 수행한다.
 절차의 단일 소스는 그 파일이다.
 
-파일이 없으면 `dev-orchestrate-kit` 의 `./install.sh --codex` 를 먼저 실행하도록 안내하고 종료한다.
+파일이 없으면 `aigsprac` 의 `./install.sh --codex` 를 먼저 실행하도록 안내하고 종료한다.
 
 ## 2단계: 절차 수행 시 codex 전용 사항
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# dev-orchestrate-kit 전역 설치 (멱등) — macOS / Linux
+# aigsprac 전역 설치 (멱등) — macOS / Linux
 #
 # 사용법: ./install.sh [--claude] [--codex] [--containers=browser,dashboard] \
 #                     [--providers=qwen,openai,xai,antigravity] [--plan=<이름>] [ECC 언어 ...]
@@ -27,6 +27,9 @@ AUTH_LOGIN_ARGV=()
 MCP_REGISTER=0
 MCP_ADD_ARGV=()
 CONTAINER_UP_ARGV=()
+DASHBOARD_MOUNTS_GENERATED=0
+DASHBOARD_OVERRIDE_PATH=""
+DASHBOARD_OVERRIDE_PATH_READY=0
 ECC_LANGS=()
 ECC_LANG_REJECTED=0
 CLAUDE_INSTALL_FAILED=0
@@ -1185,7 +1188,44 @@ build_container_up_argv() {
   CONTAINER_UP_ARGV=()
   case "$1" in
     browser) CONTAINER_UP_ARGV=(docker compose -f "$KIT_DIR/containers/browser/docker-compose.yml" up -d) ;;
-    dashboard) CONTAINER_UP_ARGV=(docker compose -f "$KIT_DIR/components/usage-dashboard/docker-compose.yml" up -d) ;;
+    dashboard)
+      if [ "$DASHBOARD_OVERRIDE_PATH_READY" = "0" ]; then
+        if [ "${INSTALL_DRY_RUN:-0}" != "1" ] && [ "$DASHBOARD_MOUNTS_GENERATED" = "0" ]; then
+          DASHBOARD_MOUNTS_GENERATED=1
+          if command -v python3 >/dev/null 2>&1; then
+            if ! python3 "$KIT_DIR/core/scripts/phase-tools.py" dashboard-mounts >/dev/null; then
+              note "⚠️ dashboard-mounts 생성 실패 — 기존 마운트 설정으로 계속 진행" >&2
+            fi
+          fi
+        fi
+        if [ "${INSTALL_DRY_RUN:-0}" != "1" ] && command -v python3 >/dev/null 2>&1; then
+          if DASHBOARD_OVERRIDE_PATH=$(python3 "$KIT_DIR/core/scripts/phase-tools.py" dashboard-mounts --print-path); then
+            if [ -z "$DASHBOARD_OVERRIDE_PATH" ]; then
+              note "⚠️ dashboard-mounts 경로 확인 결과가 비어 있음 — 폴백 경로로 계속 진행" >&2
+            fi
+          else
+            DASHBOARD_OVERRIDE_PATH=""
+            note "⚠️ dashboard-mounts 경로 확인 실패 — 폴백 경로로 계속 진행" >&2
+          fi
+        fi
+        if [ -z "$DASHBOARD_OVERRIDE_PATH" ]; then
+          if [ -n "${ORCH_STATE_DIR:-}" ]; then
+            _dashboard_state_dir=$ORCH_STATE_DIR
+          else
+            _dashboard_state_dir=${HOME:-}/.local/state/orchestrate
+          fi
+          DASHBOARD_OVERRIDE_PATH=$_dashboard_state_dir/dashboard-compose.override.yml
+        fi
+        DASHBOARD_OVERRIDE_PATH_READY=1
+      fi
+      CONTAINER_UP_ARGV=(docker compose -f "$KIT_DIR/components/usage-dashboard/docker-compose.yml")
+      if [ -f "$DASHBOARD_OVERRIDE_PATH" ]; then
+        CONTAINER_UP_ARGV[${#CONTAINER_UP_ARGV[@]}]=-f
+        CONTAINER_UP_ARGV[${#CONTAINER_UP_ARGV[@]}]="$DASHBOARD_OVERRIDE_PATH"
+      fi
+      CONTAINER_UP_ARGV[${#CONTAINER_UP_ARGV[@]}]=up
+      CONTAINER_UP_ARGV[${#CONTAINER_UP_ARGV[@]}]=-d
+      ;;
     *) return 1 ;;
   esac
 }

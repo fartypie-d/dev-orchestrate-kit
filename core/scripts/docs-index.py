@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""DOCs 페이즈 문서 인덱스 생성기.
+"""페이즈 문서 인덱스 생성기.
 
-DOCs/ 하위의 작업 지시서·리뷰·조사 문서를 스캔해 DOCs/INDEX.md 표를 재생성한다.
+저장소의 docs/phases/를 우선하고, 없으면 기존 DOCs/ 하위의 작업 지시서·리뷰·조사 문서를
+스캔해 해당 디렉터리의 INDEX.md 표를 재생성한다.
 문서 상단 frontmatter(--- ... ---)를 우선 읽고, 없으면 파일명·H1에서 best-effort 추출한다.
 
-사용:  python3 scripts/docs-index.py        # DOCs/INDEX.md 갱신
+사용:  python3 scripts/docs-index.py        # docs/phases/INDEX.md 또는 DOCs/INDEX.md 갱신
 페이즈 종료 시(orchestrate 9단계) 한 번 실행하면 인덱스가 최신화된다.
 
 frontmatter 규약 (신규 문서 권장):
@@ -28,8 +29,17 @@ from pathlib import Path
 
 
 def default_docs_dir() -> Path:
-    """실행 경로의 심링크를 보존해 저장소 DOCs 경로를 계산한다."""
-    return Path(os.path.abspath(__file__)).parent.parent / "DOCs"
+    """문서 내용까지 확인해 기본 문서 경로를 계산한다."""
+    root = Path(os.path.abspath(__file__)).parent.parent
+    docs_phases = root / "docs" / "phases"
+    legacy_docs = root / "DOCs"
+    if docs_phases.is_dir() and any(
+            is_included_document(path, docs_phases)
+            for path in docs_phases.rglob("*.md")):
+        return docs_phases
+    if legacy_docs.is_dir():
+        return legacy_docs
+    return docs_phases
 
 # 스캔 대상 (phase 문서만 — TODO/CTO_BRIEFING/specs/images/TEMPLATES 제외).
 # reviews/ 디렉터리의 모든 .md는 패턴과 무관하게 포함한다(아래 main 참조).
@@ -41,6 +51,17 @@ INCLUDE_PATTERNS = (
     re.compile(r".*REVIEW.*\.md$", re.IGNORECASE),
     re.compile(r"^CASE_STUDY.*\.md$"),
 )
+
+
+def is_included_document(path: Path, docs_dir: Path) -> bool:
+    """인덱스 스캔 대상인지 판정한다."""
+    if path.name == "INDEX.md":
+        return False
+    parts = path.relative_to(docs_dir).parts
+    if any(part in ("TEMPLATES", "specs", "images") for part in parts):
+        return False
+    return "reviews" in parts or any(
+        pattern.match(path.name) for pattern in INCLUDE_PATTERNS)
 
 
 def parse_frontmatter(text: str) -> dict[str, str]:
@@ -132,16 +153,16 @@ def main(argv=None) -> int:
     )
     args = parser.parse_args(argv)
     docs_dir = args.docs_dir
+    if not docs_dir.is_dir():
+        print(
+            f"문서 디렉터리를 찾을 수 없습니다: {docs_dir}",
+            file=sys.stderr,
+        )
+        return 1
     index = docs_dir / "INDEX.md"
     rows = []
     for p in docs_dir.rglob("*.md"):
-        if p.name == "INDEX.md":
-            continue
-        parts = p.relative_to(docs_dir).parts
-        if any(x in parts for x in ("TEMPLATES", "specs", "images")):
-            continue
-        in_reviews = "reviews" in parts
-        if not (in_reviews or any(pat.match(p.name) for pat in INCLUDE_PATTERNS)):
+        if not is_included_document(p, docs_dir):
             continue
         rows.append(extract(p, docs_dir))
 
@@ -154,8 +175,14 @@ def main(argv=None) -> int:
 
     rows.sort(key=sort_key, reverse=True)
 
+    root = Path(os.path.abspath(__file__)).parent.parent
+    try:
+        docs_label = docs_dir.resolve().relative_to(root).as_posix()
+    except ValueError:
+        docs_label = str(docs_dir)
+
     lines = [
-        "# DOCs 인덱스 (자동 생성 — `scripts/docs-index.py`)",
+        f"# {docs_label} 인덱스 (자동 생성 — `scripts/docs-index.py`)",
         "",
         f"> {len(rows)}개 페이즈 문서. 과거 작업은 이 표를 스캔 → 문서 열기 → `git show <commit>`.",
         "> 표는 수정하지 말 것 (재생성 시 덮어씀). 신규 문서에 frontmatter를 달면 정확히 반영된다.",

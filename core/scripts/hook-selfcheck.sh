@@ -21,7 +21,16 @@ check "post-edit-check: 정상 py 통과" 0 $?
 T_BAD=$(mktemp /tmp/hookcheck-bad-XXXXXX.py); echo 'def broken(:' > "$T_BAD"
 printf '{"tool_input":{"file_path":"%s"}}' "$T_BAD" | bash .claude/hooks/post-edit-check.sh >/dev/null 2>&1
 check "post-edit-check: 문법 오류 py 차단" 2 $?
+T_DOCS=$(mktemp -d /tmp/hookcheck-docs-XXXXXX)
+mkdir -p "$T_DOCS/docs/phases"
+echo 'def broken(:' > "$T_DOCS/docs/phases/skip.py"
+printf '{"tool_input":{"file_path":"%s"}}' "$T_DOCS/docs/phases/skip.py" | bash .claude/hooks/post-edit-check.sh >/dev/null 2>&1
+check "post-edit-check: docs/phases 하위 py 검사 제외" 0 $?
+echo 'def broken(:' > "$T_DOCS/docs/check.py"
+printf '{"tool_input":{"file_path":"%s"}}' "$T_DOCS/docs/check.py" | bash .claude/hooks/post-edit-check.sh >/dev/null 2>&1
+check "post-edit-check: docs 직하 py 문법 오류 차단" 2 $?
 rm -f "$T_OK" "$T_BAD"
+rm -rf "$T_DOCS"
 
 if [ "$FAIL" -ne 0 ]; then
   echo "HOOK_SELFCHECK_FAIL: 훅이 기대대로 동작하지 않는다 — 원인 확인 전 위임 금지" >&2

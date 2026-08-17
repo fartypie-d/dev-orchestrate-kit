@@ -7,7 +7,7 @@ description: Use when 사용자가 "오케스트레이터로 진행"·"작업 �
 
 > claude는 **감독관**이다. 소스 코드를 직접 수정하지 않는다.
 > 구현은 `opencode run --agent <에이전트>`로 위임하고, **도메인 리뷰어**로 검수한다.
-> 예외적으로 수정 가능한 것: `DOCs/` 문서, `.claude/` 설정.
+> 예외적으로 수정 가능한 것: `docs/phases/` 문서, `.claude/` 설정.
 
 파이프라인: **인터뷰 → 크기 분류 → 지시서 → `GATE 1` → 위임(TDD; standard·large는 task-orchestrator 경유) → 도메인 리뷰 → `GATE 2`(페이즈 말 통합 승인) → 보고**
 
@@ -43,7 +43,7 @@ description: Use when 사용자가 "오케스트레이터로 진행"·"작업 �
 (최대 2라운드 × 4질문). 그러고도 비가역 모호점이 남으면 오토 진입을 거부하고 일반 모드를 제안한다.
 
 **자동 결정 로그**: skip으로 채택된 모든 결정과 자동 커밋(해시 포함)을 지시서
-(`DOCs/PHASE<번호>_<slug>.md`)의 `## 자동 결정 로그` 섹션에 `[시각] 질문 → 채택안 (사유)` 형식으로
+(`docs/phases/PHASE<번호>_<slug>.md`)의 `## 자동 결정 로그` 섹션에 `[시각] 질문 → 채택안 (사유)` 형식으로
 기록한다. 9단계 완료 보고에 **로그 전체 + 보류 task 목록**을 포함한다 — 복귀한 사용자가
 무엇이 자기 없이 결정됐는지 감사(audit)할 수 있어야 한다.
 
@@ -91,9 +91,9 @@ ECC에 없는 도메인이면 새 프로젝트 리뷰어를 만든다. 프로젝
    (anomalyco/opencode#21215 · #15188)으로 토큰 0개·exit 0 침묵사가 나므로 금지하며,
    병렬은 serve 경유만 허용한다. 호출 cwd는 저장소 루트여야 한다(스크립트 내부 `cd` 없음;
    프로젝트 락 이름과 `--dir`이 호출 cwd 기준). LOCK_TIMEOUT이 나면 침묵 대기하지 말고 보고한다.
-3. **지시서 분리** — 지시서는 `DOCs/PHASE<번호>_<slug>.md` (5단계). `CURRENT_TASK.md`는
+3. **지시서 분리** — 지시서는 `docs/phases/PHASE<번호>_<slug>.md` (5단계). `CURRENT_TASK.md`는
    docs-index가 싱글턴으로 특별 취급하므로 동시 페이즈가 하나뿐일 때만 쓴다.
-   페이즈 번호는 `phase-claim.sh` 가 발급한 것만 쓴다 — `ls DOCs/` 육안 확인은 다른
+   페이즈 번호는 `phase-claim.sh` 가 발급한 것만 쓴다 — `ls docs/phases/` 육안 확인은 다른
    워크트리·브랜치의 지시서가 보이지 않아 충돌한다 (Phase 145 중복·166→167 리네임 실측).
 4. **산출물 분리** — `.orchestrate/task<N>.prompt`·`task<N>.log` 명명 고정 (워크트리별로는
    자연 분리, 같은 체크아웃 안에서는 task 번호로 구분).
@@ -108,7 +108,7 @@ ECC에 없는 도메인이면 새 프로젝트 리뷰어를 만든다. 프로젝
 
 ## 1단계: 상태 수집 (읽기 전용)
 
-- `DOCs/TODO.md`, 진행 중 지시서(`DOCs/PHASE*.md` 중 `status: in-progress`, 없으면 `DOCs/CURRENT_TASK.md`)
+- `docs/phases/TODO.md`, 진행 중 지시서(`docs/phases/PHASE*.md` 중 `status: in-progress`, 없으면 `docs/phases/CURRENT_TASK.md`)
 - `git log --oneline -10`, `git status --short`, `git diff --stat HEAD`
 - `docker ps` + 로스터에 명시된 헬스체크
 - **훅 생존 확인** — 이 키트를 도입한 프로젝트는 SessionStart 훅(settings.json)이 `scripts/hook-selfcheck.sh`를
@@ -235,9 +235,9 @@ task를 쓰기 전에 기존 자산을 검색한다 (`grep -rn`으로 핵심 동
 
 실자금 거래·결제 등 🔴 도메인 task는 다른 도메인 task와 섞지 않는다 (독립 배정).
 
-## 5단계: 지시서 작성 → `DOCs/PHASE<번호>_<slug>.md` → **GATE 1**
+## 5단계: 지시서 작성 → `docs/phases/PHASE<번호>_<slug>.md` → **GATE 1**
 
-지시서는 **`DOCs/PHASE<번호>_<slug>.md`** 에 쓴다 (`CURRENT_TASK.md`는 동시 진행 페이즈가
+지시서는 **`docs/phases/PHASE<번호>_<slug>.md`** 에 쓴다 (`CURRENT_TASK.md`는 동시 진행 페이즈가
 하나뿐일 때만 허용 — docs-index가 싱글턴으로 특별 취급해 병렬 세션 간 덮어쓰기 충돌이 난다).
 페이즈 번호·워크트리·브랜치는 **`bash scripts/phase-claim.sh <slug>` 출력값을 그대로** 쓴다.
 번호를 육안으로 고르지 말 것 (레지스트리가 유일한 진실의 원천 — 병렬 세션 충돌 실측 2건).
@@ -249,8 +249,8 @@ task를 쓰기 전에 기존 자산을 검색한다 (`grep -rn`으로 핵심 동
 
 | 구조 | 조건 | 구성 |
 |---|---|---|
-| **분할 (기본)** | task 3개 이상 또는 large 등급 | 인덱스 `DOCs/PHASE<번호>_<slug>.md` (**10KB 상한**) + task별 상세 `DOCs/PHASE<번호>_<slug>.tasks/task<N>.md` |
-| 단일 파일 | task 2개 이하 소형 페이즈 | `DOCs/PHASE<번호>_<slug>.md` 하나 (**20KB 상한**) |
+| **분할 (기본)** | task 3개 이상 또는 large 등급 | 인덱스 `docs/phases/PHASE<번호>_<slug>.md` (**10KB 상한**) + task별 상세 `docs/phases/PHASE<번호>_<slug>.tasks/task<N>.md` |
+| 단일 파일 | task 2개 이하 소형 페이즈 | `docs/phases/PHASE<번호>_<slug>.md` 하나 (**20KB 상한**) |
 
 - **인덱스**에 두는 것: frontmatter, 인터뷰 결과, task 목록 표(번호·제목·에이전트·상태·커밋),
   자동 결정 로그, **전파 제약 누적**. 진행 중 갱신은 인덱스에만 한다.
@@ -326,7 +326,7 @@ trivial 등급은 게이트를 생략할 수 있으나, 생략했음을 한 줄�
 2. **20KB 넘는 파일은 통째로 Read 금지** — Grep으로 위치를 찾고 offset/limit 부분 읽기.
    위임 로그는 `tail`로만 확인한다 (전체 cat 금지).
 3. **세션 인계 의무** — 스래싱 경고가 뜨거나 한 세션에서 압축이 2회를 넘으면 진행을 멈추고
-   `DOCs/PHASE<번호>_<slug>.tasks/HANDOFF.md`를 쓴다: 완료 상태표 + 다음 task 번호 +
+   `docs/phases/PHASE<번호>_<slug>.tasks/HANDOFF.md`를 쓴다: 완료 상태표 + 다음 task 번호 +
    전파 제약 누적 + 재개 지시 한 줄. 커밋 후 사용자에게 **"새 세션에서 재개"**를 안내하고 끝낸다.
    이어받는 세션은 HANDOFF + 현재 task 파일만 읽고 시작한다 (지시서 전체 금지).
 4. 긴 페이즈는 지시서 작성 시점에 **파트 그룹핑**(5단계 참조)으로 세션 단위를 계획한다 —
@@ -555,15 +555,15 @@ task-orchestrator 경유 시에도 **이 구성과 위임 실행은 메인이 �
 - 미해결·후속 제안
 
 **페이즈 문서 관리** (문서가 쌓여도 과거 작업을 빨리 찾기 위한 체계):
-1. 완료된 지시서(`DOCs/PHASE<번호>_<slug>.md`)는 `status:`를 `done`으로 바꾸고 `commits:`·정량 3필드를
-   채운다 (파일명에 번호가 있으므로 `DOCs/archive/` 이동은 선택. 구식 `CURRENT_TASK.md`를 썼다면
-   `DOCs/archive/CURRENT_TASK_YYYYMMDD_phase<N>_<상태>.md`로 아카이브).
+1. 완료된 지시서(`docs/phases/PHASE<번호>_<slug>.md`)는 `status:`를 `done`으로 바꾸고 `commits:`·정량 3필드를
+   채운다 (파일명에 번호가 있으므로 `docs/phases/archive/` 이동은 선택. 구식 `CURRENT_TASK.md`를 썼다면
+   `docs/phases/archive/CURRENT_TASK_YYYYMMDD_phase<N>_<상태>.md`로 아카이브).
    분할 구조의 `.tasks/` 디렉터리는 지시서 옆에 그대로 남기되, `HANDOFF.md`는 페이즈 마감 시
    삭제한다 (인계는 페이즈가 살아 있는 동안만 유효한 임시 문서다).
-2. 필요 시 페이즈 리뷰 문서를 `DOCs/reviews/PHASE<N>_<slug>.md`로 남긴다 (frontmatter 포함: `phase/date/kind: review/domain/status/commits/summary`).
-3. `python3 scripts/docs-index.py`(있으면)로 **`DOCs/INDEX.md`를 재생성**한다. 인덱스는 손으로 고치지 말 것 —
+2. 필요 시 페이즈 리뷰 문서를 `docs/phases/reviews/PHASE<N>_<slug>.md`로 남긴다 (frontmatter 포함: `phase/date/kind: review/domain/status/commits/summary`).
+3. `python3 scripts/docs-index.py`(있으면)로 **`docs/phases/INDEX.md`를 재생성**한다. 인덱스는 손으로 고치지 말 것 —
    frontmatter가 소스이고 스크립트가 표를 만든다. 과거 작업 조회는 INDEX.md 표 스캔 → 문서 열기 → `git show <commit>`.
-4. **이번 페이즈에서 실측된 새 함정**이 있으면 `DOCs/PITFALLS.md`에 상세를 append하고
+4. **이번 페이즈에서 실측된 새 함정**이 있으면 `docs/phases/PITFALLS.md`에 상세를 append하고
    (무엇을 하면 → 무엇이 죽는지 → 실측 날짜), 프로젝트 CLAUDE.md "이 저장소의 함정" 절에
    **한 줄 인덱스**를 추가한다 (상세를 CLAUDE.md에 쓰지 말 것 — 베이스라인 컨텍스트가 커지면
    autocompact 헤드룸이 줄어든다. PITFALLS.md가 없는 프로젝트는 같은 구조로 만든다).
@@ -594,7 +594,7 @@ docker up/down/restart·sudo·`rm -rf`가 기계적으로 차단되어 있다 (�
 
 | 합리화 | 현실 |
 |---|---|
-| "한 줄 수정이니 직접 고치자" | 크기와 무관하게 소스는 위임. 직접 수정 가능한 건 DOCs/·.claude/ 뿐 |
+| "한 줄 수정이니 직접 고치자" | 크기와 무관하게 소스는 위임. 직접 수정 가능한 건 docs/phases/·.claude/ 뿐 |
 | "간단한 task니 검수 생략" | 검수 없는 위임이 금지사항 1순위. 검증 명령 출력 확인 전 ✅ 금지 |
 | "요청이 대충 명확하니 인터뷰 생략" | 생략은 스코프·우선순위·제약이 **모두** 명시된 경우만 |
 | "리뷰어까지는 과하다" | 리뷰어 호출은 조건이 아니라 도메인별 필수 |

@@ -1,4 +1,6 @@
-# dev-orchestrate-kit
+# aigsprac
+
+> 구 **dev-orchestrate-kit**
 
 [English](./README.md) | **한국어**
 
@@ -13,6 +15,11 @@
 
 어떤 머신에든 이 개발환경을 재현하는 부트스트랩 키트다. ECC(everything-claude-code)·superpowers
 위에 커스텀 오케스트레이션 계층(온보딩 명령, 모델 폴백 체인, 프로젝트 스캐폴드)을 얹는다.
+
+## AI General Staff practice
+
+aigsprac은 "AI General Staff practice" — 오케스트레이터는 참모본부로서 계획·검토·승인만 맡고,
+실행은 이미 구독 중인 모델들 위의 예하 부대(opencode 위임 에이전트)가 수행한다.
 
 ## 왜 쓰는가
 
@@ -49,8 +56,8 @@
 ## 빠른 시작
 
 ```bash
-git clone https://github.com/fartypie-d/dev-orchestrate-kit.git
-cd dev-orchestrate-kit
+git clone https://github.com/fartypie-d/aigsprac.git
+cd aigsprac
 
 # 전역 1회 — $HOME 아래 전역 자산을 설치한다. 하네스·프로바이더는 생략 시 자동 감지/대화형이며,
 # 하네스는 감독(오케스트레이터) 쪽 Claude Code 및/또는 Codex 선택이다. 위임 실행자 opencode는 항상 설치된다.
@@ -156,7 +163,34 @@ docker compose build && docker compose up -d
 # http://127.0.0.1:9280 (로컬 전용)
 ```
 
+기존 `DOCs` 프로젝트를 `docs/phases`로 이관한 뒤에는
+`~/.local/state/orchestrate/registry/<프로젝트>.json`의 `docs_dir`를 `docs/phases`로 바꾸고
+마운트를 재생성해야 한다.
+
 개발은 독립 저장소에서 진행되고, 이 키트는 릴리스 시점의 포인터만 갱신한다.
+
+### 대시보드 문서 마운트
+
+대시보드는 오케스트레이트 레지스트리에 기록된 각 프로젝트의 진행내역 문서를 호스트 절대경로로
+연다. 따라서 컨테이너 안에도 같은 경로가 마운트되어 있어야 하며, 그렇지 않으면 UI에
+`문서 없음`으로 표시된다. `./install.sh --containers=dashboard`는 레지스트리를 읽어 대시보드
+Compose override를 자동 생성하고, 파일이 실제로 있을 때 적용한다.
+기본 생성 경로는 `~/.local/state/orchestrate/dashboard-compose.override.yml`이며,
+`ORCH_STATE_DIR`이 설정되어 있으면 해당 디렉터리 아래에 생성한다.
+
+새 프로젝트를 등록했거나 DOCs 경로를 바꿨다면 저장소 루트에서 마운트를 재생성하고 대시보드를
+재기동한다:
+
+```bash
+python3 scripts/phase-tools.py dashboard-mounts
+docker compose -f components/usage-dashboard/docker-compose.yml \
+  -f ~/.local/state/orchestrate/dashboard-compose.override.yml up -d
+```
+
+존재하지 않는 DOCs 디렉터리는 건너뛰므로 Docker가 호스트에 root 소유 빈 디렉터리를 만들지
+않는다. 마운트는 읽기 전용(`ro`)이며 비대칭이다. source는 심링크를 해석한 실경로를 쓰고,
+target은 대시보드가 여는 레지스트리 등록 경로를 그대로 쓴다. 심링크를 교체했다면 대시보드를
+재기동하기 전에 override를 재생성한다.
 
 ## 독립 모듈 — 브라우저 컨테이너
 

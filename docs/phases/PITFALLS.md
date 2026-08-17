@@ -313,3 +313,18 @@ docker 분기까지 도달한다. 프레시 클론(서브모듈 미초기화)에
 워크트리 페이즈에서 위임 에이전트가 서브모듈을 init 했을 수 있으니 마감 전 `git submodule status` 로
 확인하고, 초기화돼 있으면 `git worktree remove --force --force` 경로로 마감한다.
 
+
+## 25. 로컬 main 이 미푸시 상태일 때 phase-claim 을 실행하면 낡은 origin/main 에서 분기된다 (2026-08-17, Phase 9 실측)
+
+**무엇을 하면**: 직전 페이즈 병합을 origin 에 푸시하지 않은 채 `scripts/phase-claim.sh` 로
+새 페이즈 워크트리를 만들면.
+
+**무엇이 죽는지**: 브랜치가 낡은 origin/main 에서 분기된다. Phase 9 에서 phase8 병합(02941dd)
+3커밋 앞선 로컬 main 을 두고 f3a4884(구 origin/main)에서 분기됐고, 워크트리의 CLAUDE.md 가
+phase8 이전 내용(DOCs/ 경로)으로 돌아가 있었다. task 2개를 커밋한 뒤에야 리뷰어가 발견 —
+`git rebase main` 으로 해소했지만(충돌 없음, 운이 좋았다), 겹치는 파일을 고치는 페이즈였다면
+병합 충돌·유령 회귀가 났다.
+
+**대응**: ① 페이즈 시작 전 `git log --oneline origin/main..main` 으로 미푸시 커밋을 확인하고
+푸시(또는 인지) 후 claim 한다. ② claim 직후 `git merge-base HEAD main` 이 main 팁과 같은지
+확인한다. 다르면 작업 시작 전에 `git rebase main`.
